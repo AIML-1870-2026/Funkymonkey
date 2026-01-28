@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyperspace Starfield</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            font-family: 'Rajdhani', sans-serif;
+            background: #000;
+        }
+
+        canvas {
+            display: block;
+            background: radial-gradient(ellipse at center, #0a0a1a 0%, #000000 100%);
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 240px;
+            background: rgba(10, 10, 26, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(100, 200, 255, 0.3);
+            box-shadow: 0 0 20px rgba(100, 200, 255, 0.2);
+            backdrop-filter: blur(10px);
+            color: #fff;
+        }
+
+        .controls h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #64c8ff, #9d64ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #64c8ff;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-group .value-display {
+            float: right;
+            color: #9d64ff;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, rgba(100, 200, 255, 0.2), rgba(157, 100, 255, 0.2));
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #64c8ff, #9d64ff);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(100, 200, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px rgba(100, 200, 255, 0.8);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #64c8ff, #9d64ff);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(100, 200, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px rgba(100, 200, 255, 0.8);
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 3px;
+        }
+
+        input[type="range"]::-moz-range-track {
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, rgba(100, 200, 255, 0.2), rgba(157, 100, 255, 0.2));
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="controls">
+        <h1>HYPERSPACE</h1>
+
+        <div class="control-group">
+            <label>
+                Trail Length
+                <span class="value-display" id="trailLengthValue">20</span>
+            </label>
+            <input type="range" id="trailLength" min="1" max="50" value="20" step="1">
+        </div>
+
+        <div class="control-group">
+            <label>
+                Star Count
+                <span class="value-display" id="starCountValue">200</span>
+            </label>
+            <input type="range" id="starCount" min="50" max="1000" value="200" step="10">
+        </div>
+
+        <div class="control-group">
+            <label>
+                Star Speed
+                <span class="value-display" id="starSpeedValue">0.10x</span>
+            </label>
+            <input type="range" id="starSpeed" min="0.01" max="1" value="0.10" step="0.01">
+        </div>
+
+        <div class="control-group">
+            <label>
+                Spawn Radius
+                <span class="value-display" id="spawnRadiusValue">10</span>
+            </label>
+            <input type="range" id="spawnRadius" min="1" max="100" value="10" step="1">
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Configuration object
+        const config = {
+            trailLength: 20,
+            starCount: 200,
+            starSpeed: 0.10,
+            spawnRadius: 10
+        };
+
+        // Canvas setup
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Star class
+        class Star {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+
+                // Random angle from center
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * config.spawnRadius;
+
+                this.x = centerX + Math.cos(angle) * distance;
+                this.y = centerY + Math.sin(angle) * distance;
+
+                // Calculate outward velocity
+                const dx = this.x - centerX;
+                const dy = this.y - centerY;
+                const magnitude = Math.sqrt(dx * dx + dy * dy) || 1;
+
+                const baseSpeed = 2 + Math.random() * 3;
+                this.vx = (dx / magnitude) * baseSpeed;
+                this.vy = (dy / magnitude) * baseSpeed;
+
+                this.trail = [];
+                this.size = 0.5 + Math.random() * 1.5;
+                this.brightness = 0.5 + Math.random() * 0.5;
+            }
+
+            update() {
+                // Apply speed multiplier
+                this.x += this.vx * config.starSpeed;
+                this.y += this.vy * config.starSpeed;
+
+                // Update trail
+                this.trail.push({ x: this.x, y: this.y });
+                if (this.trail.length > config.trailLength) {
+                    this.trail.shift();
+                }
+
+                // Check boundaries
+                if (this.x < -50 || this.x > canvas.width + 50 ||
+                    this.y < -50 || this.y > canvas.height + 50) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                // Draw trail
+                if (this.trail.length > 1) {
+                    for (let i = 0; i < this.trail.length - 1; i++) {
+                        const alpha = (i / this.trail.length) * this.brightness;
+                        const lineWidth = (i / this.trail.length) * this.size;
+
+                        ctx.strokeStyle = `rgba(100, 200, 255, ${alpha})`;
+                        ctx.lineWidth = lineWidth;
+                        ctx.lineCap = 'round';
+
+                        ctx.beginPath();
+                        ctx.moveTo(this.trail[i].x, this.trail[i].y);
+                        ctx.lineTo(this.trail[i + 1].x, this.trail[i + 1].y);
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw star head
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.brightness})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw glow effect
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.size * 3
+                );
+                gradient.addColorStop(0, `rgba(100, 200, 255, ${this.brightness * 0.3})`);
+                gradient.addColorStop(1, 'rgba(100, 200, 255, 0)');
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Initialize stars
+        let stars = [];
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < config.starCount; i++) {
+                stars.push(new Star());
+            }
+        }
+        initStars();
+
+        // Animation loop
+        function animate() {
+            // Fade effect overlay for trail persistence
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update and draw all stars
+            stars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Control panel event listeners
+        const trailLengthSlider = document.getElementById('trailLength');
+        const trailLengthValue = document.getElementById('trailLengthValue');
+        trailLengthSlider.addEventListener('input', (e) => {
+            config.trailLength = parseInt(e.target.value);
+            trailLengthValue.textContent = config.trailLength;
+        });
+
+        const starCountSlider = document.getElementById('starCount');
+        const starCountValue = document.getElementById('starCountValue');
+        starCountSlider.addEventListener('input', (e) => {
+            config.starCount = parseInt(e.target.value);
+            starCountValue.textContent = config.starCount;
+            initStars();
+        });
+
+        const starSpeedSlider = document.getElementById('starSpeed');
+        const starSpeedValue = document.getElementById('starSpeedValue');
+        starSpeedSlider.addEventListener('input', (e) => {
+            config.starSpeed = parseFloat(e.target.value);
+            starSpeedValue.textContent = config.starSpeed.toFixed(2) + 'x';
+        });
+
+        const spawnRadiusSlider = document.getElementById('spawnRadius');
+        const spawnRadiusValue = document.getElementById('spawnRadiusValue');
+        spawnRadiusSlider.addEventListener('input', (e) => {
+            config.spawnRadius = parseInt(e.target.value);
+            spawnRadiusValue.textContent = config.spawnRadius;
+        });
+    </script>
+</body>
+</html>
