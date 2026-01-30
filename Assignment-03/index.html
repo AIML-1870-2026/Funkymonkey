@@ -12,10 +12,15 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            height: 100%;
+        }
+
         body {
             overflow: hidden;
             font-family: 'Space Grotesk', sans-serif;
             background: radial-gradient(ellipse at center, #1a0a2e 0%, #0d0015 50%, #000000 100%);
+            min-height: 100vh;
         }
 
         canvas {
@@ -23,6 +28,7 @@
             position: fixed;
             top: 0;
             left: 0;
+            background: transparent;
         }
 
         /* Twinkling stars background */
