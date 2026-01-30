@@ -462,10 +462,20 @@
 
             // Draw head (monkey emoji)
             const head = monkey[0];
+            const headCenterX = head.x * gridSize + gridSize / 2;
+            const headCenterY = head.y * gridSize + gridSize / 2;
+            const headRadius = gridSize * 0.65;
+
+            // Draw solid background circle behind emoji
+            ctx.fillStyle = '#d4a574';
+            ctx.beginPath();
+            ctx.arc(headCenterX, headCenterY, headRadius, 0, Math.PI * 2);
+            ctx.fill();
+
             ctx.font = `${gridSize * 1.4}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('🐵', head.x * gridSize + gridSize / 2, head.y * gridSize + gridSize / 2);
+            ctx.fillText('🐵', headCenterX, headCenterY);
         }
 
         // Draw banana
