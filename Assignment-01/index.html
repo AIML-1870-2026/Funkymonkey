@@ -4,8 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assignment 01</title>
+    <style>
+        body {
+            background-color: #ffb6c1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        h1 {
+            font-size: 3rem;
+            color: #333;
+        }
+        .monkeys {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+            font-size: 4rem;
+        }
+        .monkey {
+            animation: bounce 2s ease-in-out infinite;
+        }
+        .monkey:nth-child(2) { animation-delay: 0.3s; }
+        .monkey:nth-child(3) { animation-delay: 0.6s; }
+        .monkey:nth-child(4) { animation-delay: 0.9s; }
+        .monkey:nth-child(5) { animation-delay: 1.2s; }
+        .monkey:nth-child(6) { animation-delay: 1.5s; }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        .corner-monkey {
+            position: fixed;
+            font-size: 3rem;
+        }
+        .corner-monkey.top-left { top: 20px; left: 20px; }
+        .corner-monkey.top-right { top: 20px; right: 20px; }
+        .corner-monkey.bottom-left { bottom: 20px; left: 20px; }
+        .corner-monkey.bottom-right { bottom: 20px; right: 20px; }
+    </style>
 </head>
 <body>
+    <span class="corner-monkey top-left">&#128053;</span>
+    <span class="corner-monkey top-right">&#128053;</span>
+    <span class="corner-monkey bottom-left">&#128053;</span>
+    <span class="corner-monkey bottom-right">&#128053;</span>
+
     <h1>Hello from Funkymonkey!</h1>
+
+    <div class="monkeys">
+        <span class="monkey">&#128055;</span>
+        <span class="monkey">&#129421;</span>
+        <span class="monkey">&#128053;</span>
+        <span class="monkey">&#128018;</span>
+        <span class="monkey">&#129421;</span>
+        <span class="monkey">&#128055;</span>
+    </div>
 </body>
 </html>
