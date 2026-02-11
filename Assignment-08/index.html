@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Julia Set Explorer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0a0a1a;
+    color: #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.header {
+    background: linear-gradient(135deg, #1a0533, #2d1b69);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #3a2d6e;
+}
+
+.header h1 {
+    font-size: 1.4rem;
+    color: #c9b8ff;
+    letter-spacing: 1px;
+}
+
+.header .formula {
+    font-size: 0.9rem;
+    color: #8a7abf;
+    font-style: italic;
+}
+
+.main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.controls {
+    width: 300px;
+    flex-shrink: 0;
+    background: #12122a;
+    border-right: 1px solid #2a2a4a;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.controls::-webkit-scrollbar { width: 5px; }
+.controls::-webkit-scrollbar-thumb { background: #3a3a6a; border-radius: 3px; }
+
+.section {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #1e1e3e;
+}
+
+.section:last-child { border-bottom: none; }
+
+.section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #7a6abf;
+    margin-bottom: 12px;
+}
+
+.param-row {
+    margin-bottom: 10px;
+}
+
+.param-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.param-label {
+    font-size: 0.82rem;
+    color: #aaa;
+}
+
+.param-value {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #c9b8ff;
+    background: #1a1a3a;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #2a2a5a;
+    width: 80px;
+    text-align: right;
+    font-family: 'Consolas', monospace;
+}
+
+input[type="number"] {
+    background: #1a1a3a;
+    color: #c9b8ff;
+    border: 1px solid #2a2a5a;
+    padding: 2px 6px;
+    border-radius: 4px;
+    width: 80px;
+    text-align: right;
+    font-family: 'Consolas', monospace;
+    font-size: 0.82rem;
+}
+
+input[type="number"]:focus {
+    outline: none;
+    border-color: #7a6abf;
+}
+
+input[type="range"] {
+    width: 100%;
+    accent-color: #7a6abf;
+    cursor: pointer;
+}
+
+select {
+    width: 100%;
+    padding: 8px;
+    background: #1a1a3a;
+    color: #c9b8ff;
+    border: 1px solid #2a2a5a;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+select:focus { outline: none; border-color: #7a6abf; }
+
+.btn {
+    padding: 9px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    width: 100%;
+}
+
+.btn-danger {
+    background: #ff6b6b;
+    color: white;
+}
+
+.btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.btn-row .btn { flex: 1; }
+
+.anim-speed {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.anim-speed label {
+    font-size: 0.8rem;
+    color: #aaa;
+    white-space: nowrap;
+}
+
+.anim-speed input[type="range"] { flex: 1; }
+
+.canvas-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+}
+
+.canvas-wrap canvas {
+    cursor: crosshair;
+}
+
+.coord-display {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.7);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.78rem;
+    color: #8a8abf;
+    pointer-events: none;
+}
+
+.status-bar {
+    background: #0e0e20;
+    border-top: 1px solid #2a2a4a;
+    padding: 6px 20px;
+    display: flex;
+    gap: 30px;
+    font-size: 0.75rem;
+    color: #666;
+    font-family: 'Consolas', monospace;
+}
+
+.status-bar span { white-space: nowrap; }
+.status-bar .label { color: #555; }
+.status-bar .val { color: #8a7abf; }
+
+@media (max-width: 900px) {
+    .main { flex-direction: column-reverse; }
+    .controls {
+        width: 100%;
+        max-height: 40vh;
+        border-right: none;
+        border-top: 1px solid #2a2a4a;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Julia Set Explorer</h1>
+    <span class="formula">z(n+1) = z(n)&sup2; + c</span>
+</div>
+
+<div class="main">
+    <div class="controls">
+
+        <div class="section">
+            <div class="section-title">Complex Constant (c = a + bi)</div>
+            <div class="param-row">
+                <div class="param-header">
+                    <span class="param-label">Real (a)</span>
+                    <input type="number" id="realInput" value="-0.7" step="0.001" min="-2" max="2">
+                </div>
+                <input type="range" id="realSlider" min="-2" max="2" step="0.00001" value="-0.7">
+            </div>
+            <div class="param-row">
+                <div class="param-header">
+                    <span class="param-label">Imaginary (b)</span>
+                    <input type="number" id="imagInput" value="0.27015" step="0.001" min="-2" max="2">
+                </div>
+                <input type="range" id="imagSlider" min="-2" max="2" step="0.00001" value="0.27015">
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Rendering</div>
+            <div class="param-row">
+                <div class="param-header">
+                    <span class="param-label">Max Iterations</span>
+                    <input type="number" id="iterInput" value="200" step="10" min="50" max="500">
+                </div>
+                <input type="range" id="iterSlider" min="50" max="500" step="1" value="200">
+            </div>
+            <div class="param-row">
+                <div class="param-header">
+                    <span class="param-label">Escape Radius</span>
+                    <input type="number" id="escapeInput" value="2" step="0.5" min="2" max="10">
+                </div>
+                <input type="range" id="escapeSlider" min="2" max="10" step="0.1" value="2">
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Presets</div>
+            <select id="presetSelect">
+                <option value="custom">Custom</option>
+                <option value="classic" selected>Classic (c = -0.7 + 0.27015i)</option>
+                <option value="dendrite">Dendrite (c = 0 + 1i)</option>
+                <option value="rabbit">Douady's Rabbit (c = -0.123 + 0.745i)</option>
+                <option value="siegel">Siegel Disk (c = -0.391 - 0.587i)</option>
+                <option value="sanmarco">San Marco (c = -0.75 + 0i)</option>
+                <option value="dragon">Dragon (c = -0.8 + 0.156i)</option>
+            </select>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Color Scheme</div>
+            <select id="colorSelect">
+                <option value="classic">Classic</option>
+                <option value="fire">Fire</option>
+                <option value="ocean">Ocean</option>
+                <option value="grayscale">Grayscale</option>
+                <option value="rainbow">Rainbow</option>
+                <option value="psychedelic">Psychedelic</option>
+            </select>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Animation</div>
+            <select id="animType" style="margin-bottom:8px;">
+                <option value="circular">Circular Path</option>
+                <option value="linear">Linear Interpolation</option>
+                <option value="random">Random Walk</option>
+            </select>
+            <button class="btn btn-primary" id="animBtn">Animate</button>
+            <div class="anim-speed">
+                <label>Speed</label>
+                <input type="range" id="animSpeed" min="0.1" max="3" step="0.1" value="1">
+            </div>
+            <div class="anim-speed">
+                <label>Radius</label>
+                <input type="range" id="animRadius" min="0.01" max="0.5" step="0.01" value="0.1">
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">View</div>
+            <div class="btn-row">
+                <button class="btn btn-danger" id="resetView">Reset View</button>
+                <button class="btn btn-primary" id="saveBtn">Save PNG</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="fractalCanvas"></canvas>
+        <div class="coord-display" id="coordDisplay">z = 0.00000 + 0.00000i</div>
+    </div>
+</div>
+
+<div class="status-bar">
+    <span><span class="label">Zoom: </span><span class="val" id="statusZoom">1.00x</span></span>
+    <span><span class="label">Center: </span><span class="val" id="statusCenter">(0.000, 0.000)</span></span>
+    <span><span class="label">Status: </span><span class="val" id="statusRender">Ready</span></span>
+    <span><span class="label">FPS: </span><span class="val" id="statusFps">--</span></span>
+</div>
+
+<script>
+(() => {
+    // --- State ---
+    const state = {
+        c: { real: -0.7, imag: 0.27015 },
+        maxIter: 200,
+        escapeRadius: 2,
+        viewport: { cx: 0, cy: 0, zoom: 1 },
+        colorScheme: 'classic',
+        animation: { active: false, type: 'circular', speed: 1, radius: 0.1, angle: 0, baseC: null }
+    };
+
+    const presets = {
+        classic:  { real: -0.7,   imag: 0.27015 },
+        dendrite: { real: 0,      imag: 1 },
+        rabbit:   { real: -0.123, imag: 0.745 },
+        siegel:   { real: -0.391, imag: -0.587 },
+        sanmarco: { real: -0.75,  imag: 0 },
+        dragon:   { real: -0.8,   imag: 0.156 }
+    };
+
+    // --- Canvas setup ---
+    const canvas = document.getElementById('fractalCanvas');
+    const ctx = canvas.getContext('2d');
+    const wrap = document.getElementById('canvasWrap');
+
+    function resizeCanvas() {
+        const w = wrap.clientWidth;
+        const h = wrap.clientHeight;
+        const size = Math.min(w, h, 800);
+        canvas.width = size;
+        canvas.height = size;
+        scheduleRender();
+    }
+
+    // --- Color schemes ---
+    function hslToRgb(h, s, l) {
+        h /= 360; s /= 100; l /= 100;
+        let r, g, b;
+        if (s === 0) { r = g = b = l; }
+        else {
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1; if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+
+    function getColor(iter, maxIter, scheme) {
+        if (iter >= maxIter) return [0, 0, 0];
+        const t = iter / maxIter;
+
+        switch (scheme) {
+            case 'classic': {
+                const h = 220 + t * 60;
+                const s = 80;
+                const l = 10 + t * 60;
+                return hslToRgb(h, s, l);
+            }
+            case 'fire': {
+                const r = Math.min(255, Math.floor(t * 3 * 255));
+                const g = Math.min(255, Math.floor(Math.max(0, t * 3 - 1) * 255));
+                const b = Math.min(255, Math.floor(Math.max(0, t * 3 - 2) * 255));
+                return [r, g, b];
+            }
+            case 'ocean': {
+                const h = 180 + t * 60;
+                const s = 70 + t * 30;
+                const l = 10 + t * 50;
+                return hslToRgb(h, s, l);
+            }
+            case 'grayscale': {
+                const v = Math.floor(t * 255);
+                return [v, v, v];
+            }
+            case 'rainbow': {
+                return hslToRgb(t * 360, 85, 50);
+            }
+            case 'psychedelic': {
+                const r = Math.floor(Math.sin(t * 12) * 127 + 128);
+                const g = Math.floor(Math.sin(t * 12 + 2) * 127 + 128);
+                const b = Math.floor(Math.sin(t * 12 + 4) * 127 + 128);
+                return [r, g, b];
+            }
+            default:
+                return hslToRgb(t * 360, 80, 50);
+        }
+    }
+
+    // --- Rendering ---
+    let renderPending = false;
+    let renderTimeout = null;
+
+    function scheduleRender() {
+        if (renderTimeout) clearTimeout(renderTimeout);
+        renderTimeout = setTimeout(() => { renderFractal(); }, 30);
+    }
+
+    function renderFractal() {
+        const w = canvas.width, h = canvas.height;
+        if (w === 0 || h === 0) return;
+
+        const imageData = ctx.createImageData(w, h);
+        const data = imageData.data;
+        const { cx, cy, zoom } = state.viewport;
+        const cReal = state.c.real, cImag = state.c.imag;
+        const maxIter = state.maxIter;
+        const escR2 = state.escapeRadius * state.escapeRadius;
+        const scheme = state.colorScheme;
+        const scale = 4 / (w * zoom);
+
+        for (let py = 0; py < h; py++) {
+            const y0 = cy + (py - h / 2) * scale;
+            for (let px = 0; px < w; px++) {
+                const x0 = cx + (px - w / 2) * scale;
+
+                let x = x0, y = y0;
+                let iter = 0;
+
+                while (x * x + y * y <= escR2 && iter < maxIter) {
+                    const xt = x * x - y * y + cReal;
+                    y = 2 * x * y + cImag;
+                    x = xt;
+                    iter++;
+                }
+
+                const [r, g, b] = getColor(iter, maxIter, scheme);
+                const idx = (py * w + px) * 4;
+                data[idx] = r;
+                data[idx + 1] = g;
+                data[idx + 2] = b;
+                data[idx + 3] = 255;
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        updateStatus();
+    }
+
+    // --- UI Bindings ---
+    const realSlider = document.getElementById('realSlider');
+    const imagSlider = document.getElementById('imagSlider');
+    const realInput = document.getElementById('realInput');
+    const imagInput = document.getElementById('imagInput');
+    const iterSlider = document.getElementById('iterSlider');
+    const iterInput = document.getElementById('iterInput');
+    const escapeSlider = document.getElementById('escapeSlider');
+    const escapeInput = document.getElementById('escapeInput');
+
+    function syncUI() {
+        realSlider.value = state.c.real;
+        realInput.value = state.c.real.toFixed(5);
+        imagSlider.value = state.c.imag;
+        imagInput.value = state.c.imag.toFixed(5);
+        iterSlider.value = state.maxIter;
+        iterInput.value = state.maxIter;
+        escapeSlider.value = state.escapeRadius;
+        escapeInput.value = state.escapeRadius;
+    }
+
+    function bindSliderInput(slider, input, updateFn) {
+        slider.addEventListener('input', () => {
+            const v = parseFloat(slider.value);
+            input.value = slider.step < 1 ? v.toFixed(5) : v;
+            updateFn(v);
+            scheduleRender();
+        });
+        input.addEventListener('change', () => {
+            let v = parseFloat(input.value);
+            if (isNaN(v)) v = parseFloat(slider.value);
+            v = Math.max(parseFloat(slider.min), Math.min(parseFloat(slider.max), v));
+            slider.value = v;
+            input.value = slider.step < 1 ? v.toFixed(5) : v;
+            updateFn(v);
+            scheduleRender();
+        });
+    }
+
+    bindSliderInput(realSlider, realInput, v => {
+        state.c.real = v;
+        document.getElementById('presetSelect').value = 'custom';
+    });
+    bindSliderInput(imagSlider, imagInput, v => {
+        state.c.imag = v;
+        document.getElementById('presetSelect').value = 'custom';
+    });
+    bindSliderInput(iterSlider, iterInput, v => { state.maxIter = Math.round(v); });
+    bindSliderInput(escapeSlider, escapeInput, v => { state.escapeRadius = v; });
+
+    // Presets
+    document.getElementById('presetSelect').addEventListener('change', (e) => {
+        const key = e.target.value;
+        if (presets[key]) {
+            state.c.real = presets[key].real;
+            state.c.imag = presets[key].imag;
+            syncUI();
+            scheduleRender();
+        }
+    });
+
+    // Color scheme
+    document.getElementById('colorSelect').addEventListener('change', (e) => {
+        state.colorScheme = e.target.value;
+        scheduleRender();
+    });
+
+    // --- Zoom / Pan ---
+    let isDragging = false, dragStartX, dragStartY, dragCx, dragCy;
+
+    canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        dragCx = state.viewport.cx;
+        dragCy = state.viewport.cy;
+        canvas.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        // Coordinate display
+        const rect = canvas.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+        if (px >= 0 && py >= 0 && px <= canvas.width && py <= canvas.height) {
+            const scale = 4 / (canvas.width * state.viewport.zoom);
+            const zr = state.viewport.cx + (px - canvas.width / 2) * scale;
+            const zi = state.viewport.cy + (py - canvas.height / 2) * scale;
+            document.getElementById('coordDisplay').textContent =
+                `z = ${zr >= 0 ? ' ' : ''}${zr.toFixed(5)} ${zi >= 0 ? '+' : '-'} ${Math.abs(zi).toFixed(5)}i`;
+        }
+
+        if (!isDragging) return;
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        const scale = 4 / (canvas.width * state.viewport.zoom);
+        state.viewport.cx = dragCx - dx * scale;
+        state.viewport.cy = dragCy - dy * scale;
+        scheduleRender();
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+        canvas.style.cursor = 'crosshair';
+    });
+
+    // Click to zoom
+    canvas.addEventListener('click', (e) => {
+        if (Math.abs(e.clientX - dragStartX) > 3 || Math.abs(e.clientY - dragStartY) > 3) return;
+        const rect = canvas.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+        const scale = 4 / (canvas.width * state.viewport.zoom);
+        state.viewport.cx += (px - canvas.width / 2) * scale;
+        state.viewport.cy += (py - canvas.height / 2) * scale;
+        state.viewport.zoom *= 2;
+        scheduleRender();
+    });
+
+    canvas.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        state.viewport.zoom = Math.max(0.25, state.viewport.zoom / 2);
+        scheduleRender();
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+        const scale = 4 / (canvas.width * state.viewport.zoom);
+
+        const zr = state.viewport.cx + (px - canvas.width / 2) * scale;
+        const zi = state.viewport.cy + (py - canvas.height / 2) * scale;
+
+        const factor = e.deltaY < 0 ? 1.2 : 1 / 1.2;
+        state.viewport.zoom *= factor;
+
+        const newScale = 4 / (canvas.width * state.viewport.zoom);
+        state.viewport.cx = zr - (px - canvas.width / 2) * newScale;
+        state.viewport.cy = zi - (py - canvas.height / 2) * newScale;
+
+        scheduleRender();
+    }, { passive: false });
+
+    // Touch support
+    let lastTouchDist = 0;
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (e.touches.length === 1) {
+            isDragging = true;
+            dragStartX = e.touches[0].clientX;
+            dragStartY = e.touches[0].clientY;
+            dragCx = state.viewport.cx;
+            dragCy = state.viewport.cy;
+        } else if (e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            lastTouchDist = Math.sqrt(dx * dx + dy * dy);
+        }
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (e.touches.length === 1 && isDragging) {
+            const dx = e.touches[0].clientX - dragStartX;
+            const dy = e.touches[0].clientY - dragStartY;
+            const scale = 4 / (canvas.width * state.viewport.zoom);
+            state.viewport.cx = dragCx - dx * scale;
+            state.viewport.cy = dragCy - dy * scale;
+            scheduleRender();
+        } else if (e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (lastTouchDist > 0) {
+                state.viewport.zoom *= dist / lastTouchDist;
+                scheduleRender();
+            }
+            lastTouchDist = dist;
+        }
+    });
+
+    canvas.addEventListener('touchend', () => { isDragging = false; lastTouchDist = 0; });
+
+    // Reset view
+    document.getElementById('resetView').addEventListener('click', () => {
+        state.viewport = { cx: 0, cy: 0, zoom: 1 };
+        scheduleRender();
+    });
+
+    // Save PNG
+    document.getElementById('saveBtn').addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = 'julia-set.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+
+    // --- Animation ---
+    let animFrame = null;
+    let lastFrameTime = 0;
+    let fps = 0;
+    let fpsFrames = 0;
+    let fpsTimer = 0;
+
+    const animBtn = document.getElementById('animBtn');
+
+    animBtn.addEventListener('click', () => {
+        state.animation.active = !state.animation.active;
+        if (state.animation.active) {
+            state.animation.baseC = { real: state.c.real, imag: state.c.imag };
+            state.animation.angle = 0;
+            animBtn.textContent = 'Stop';
+            animBtn.classList.remove('btn-primary');
+            animBtn.classList.add('btn-danger');
+            lastFrameTime = performance.now();
+            fpsTimer = lastFrameTime;
+            fpsFrames = 0;
+            animLoop();
+        } else {
+            animBtn.textContent = 'Animate';
+            animBtn.classList.remove('btn-danger');
+            animBtn.classList.add('btn-primary');
+            if (animFrame) cancelAnimationFrame(animFrame);
+            animFrame = null;
+            document.getElementById('statusFps').textContent = '--';
+        }
+    });
+
+    document.getElementById('animSpeed').addEventListener('input', (e) => {
+        state.animation.speed = parseFloat(e.target.value);
+    });
+
+    document.getElementById('animRadius').addEventListener('input', (e) => {
+        state.animation.radius = parseFloat(e.target.value);
+    });
+
+    document.getElementById('animType').addEventListener('change', (e) => {
+        state.animation.type = e.target.value;
+    });
+
+    function animLoop() {
+        if (!state.animation.active) return;
+
+        const now = performance.now();
+        const dt = (now - lastFrameTime) / 1000;
+        lastFrameTime = now;
+
+        const { type, speed, radius, baseC } = state.animation;
+
+        switch (type) {
+            case 'circular':
+                state.animation.angle += dt * speed;
+                state.c.real = baseC.real + Math.cos(state.animation.angle) * radius;
+                state.c.imag = baseC.imag + Math.sin(state.animation.angle) * radius;
+                break;
+            case 'linear':
+                state.animation.angle += dt * speed * 0.5;
+                const t = (Math.sin(state.animation.angle) + 1) / 2;
+                state.c.real = baseC.real - radius + t * radius * 2;
+                state.c.imag = baseC.imag - radius + t * radius * 2;
+                break;
+            case 'random':
+                state.c.real += (Math.random() - 0.5) * 0.005 * speed;
+                state.c.imag += (Math.random() - 0.5) * 0.005 * speed;
+                state.c.real = Math.max(-2, Math.min(2, state.c.real));
+                state.c.imag = Math.max(-2, Math.min(2, state.c.imag));
+                break;
+        }
+
+        syncUI();
+        renderFractal();
+
+        // FPS counter
+        fpsFrames++;
+        if (now - fpsTimer >= 1000) {
+            fps = fpsFrames;
+            fpsFrames = 0;
+            fpsTimer = now;
+            document.getElementById('statusFps').textContent = fps;
+        }
+
+        animFrame = requestAnimationFrame(animLoop);
+    }
+
+    // --- Status bar ---
+    function updateStatus() {
+        document.getElementById('statusZoom').textContent = state.viewport.zoom.toFixed(2) + 'x';
+        document.getElementById('statusCenter').textContent =
+            `(${state.viewport.cx.toFixed(3)}, ${state.viewport.cy.toFixed(3)})`;
+        document.getElementById('statusRender').textContent = 'Complete';
+    }
+
+    // --- Init ---
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    syncUI();
+})();
+</script>
+</body>
+</html>
