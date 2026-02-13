@@ -240,7 +240,59 @@
             color: #667eea;
         }
 
+        .instructions-panel {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .instructions-title {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .instructions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .instruction-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .instruction-item h4 {
+            color: #667eea;
+            font-size: 0.95em;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .instruction-item p {
+            color: #6c757d;
+            font-size: 0.85em;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        .icon {
+            font-size: 1.2em;
+        }
+
         @media (max-width: 768px) {
+            .instructions-grid {
+                grid-template-columns: 1fr;
+            }
             h1 {
                 font-size: 1.8em;
             }
@@ -262,6 +314,36 @@
 <body>
     <div class="container">
         <h1>🐦 Boid Mini Lab</h1>
+
+        <div class="instructions-panel">
+            <div class="instructions-title">📖 How to Use</div>
+            <div class="instructions-grid">
+                <div class="instruction-item">
+                    <h4><span class="icon">🚧</span> Obstacles</h4>
+                    <p><strong>Click</strong> on the canvas to place an obstacle. <strong>Click again</strong> on an existing obstacle to remove it.</p>
+                </div>
+                <div class="instruction-item">
+                    <h4><span class="icon">🎯</span> Leader Mode</h4>
+                    <p><strong>Shift + Click</strong> near a boid to make it a leader (green). Other boids will follow it.</p>
+                </div>
+                <div class="instruction-item">
+                    <h4><span class="icon">🦖</span> Predator Mode</h4>
+                    <p><strong>Ctrl + Click</strong> (or Cmd + Click on Mac) near a boid to make it a predator (red). Boids will flee from it.</p>
+                </div>
+                <div class="instruction-item">
+                    <h4><span class="icon">👁️</span> Perception Cone</h4>
+                    <p>Enable the <strong>"Perception Cone"</strong> checkbox to switch from omnidirectional to forward-only vision. Adjust the FOV angle to see the effect!</p>
+                </div>
+                <div class="instruction-item">
+                    <h4><span class="icon">🎚️</span> Sliders</h4>
+                    <p>Adjust <strong>separation, alignment, cohesion</strong> to change flocking behavior. Modify <strong>obstacle size</strong> before placing new ones.</p>
+                </div>
+                <div class="instruction-item">
+                    <h4><span class="icon">🗑️</span> Clear Buttons</h4>
+                    <p>Use <strong>"Clear Obstacles"</strong> to remove all obstacles, or <strong>"Clear Leader/Predator"</strong> to reset special boids.</p>
+                </div>
+            </div>
+        </div>
 
         <div class="canvas-wrapper">
             <canvas id="canvas" width="1140" height="600"></canvas>
