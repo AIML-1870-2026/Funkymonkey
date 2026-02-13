@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Should I make a matcha? · Perceptron</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@1,300&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            /* Base palette */
+            --matcha-deep: #2d4a2d;
+            --matcha-mid: #4a7c59;
+            --matcha-light: #8fbc8b;
+            --matcha-pale: #c8e6c9;
+            --cream: #faf6ef;
+            --warm-white: #f5f0e8;
+            --clay: #c4a882;
+            --rust: #b85c38;
+
+            /* Neuron colors - dynamically set by JS */
+            --neuron-a: var(--matcha-deep);
+            --neuron-b: var(--matcha-mid);
+            --neuron-glow: rgba(74, 124, 89, 0.5);
+
+            /* Activation function colors */
+            --sigmoid-a: #2d4a2d;
+            --sigmoid-b: #4a7c59;
+            --sigmoid-glow: rgba(74, 124, 89, 0.5);
+            --sigmoid-curve: #8fbc8b;
+
+            --step-a: #2a3a5c;
+            --step-b: #3d5a8a;
+            --step-glow: rgba(61, 90, 138, 0.5);
+            --step-curve: #5c7fb8;
+
+            --relu-a: #6b2d2d;
+            --relu-b: #a04040;
+            --relu-glow: rgba(160, 64, 64, 0.5);
+            --relu-curve: #d05858;
+
+            --markerColor: var(--matcha-light);
+        }
+
+        body {
+            font-family: 'DM Mono', monospace;
+            font-weight: 300;
+            background: var(--cream);
+            color: var(--matcha-deep);
+            padding: 32px 24px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.4;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .eyebrow {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--matcha-mid);
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        h1 .matcha-word {
+            font-style: italic;
+            color: var(--rust);
+        }
+
+        .subtitle {
+            font-family: 'Crimson Pro', serif;
+            font-style: italic;
+            font-weight: 300;
+            font-size: 18px;
+            color: var(--matcha-mid);
+            margin-bottom: 24px;
+        }
+
+        .header-divider {
+            height: 60px;
+            background: linear-gradient(90deg, var(--matcha-deep) 0%, var(--matcha-light) 50%, var(--clay) 100%);
+            border-radius: 30px;
+            width: 200px;
+            margin: 0 auto;
+        }
+
+        /* Panel base */
+        .panel {
+            background: var(--warm-white);
+            border-radius: 16px;
+            border: 1px solid rgba(74, 124, 89, 0.25);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+            padding: 28px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--matcha-deep) 0%, var(--matcha-light) 50%, var(--clay) 100%);
+        }
+
+        .panel-title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: var(--matcha-deep);
+        }
+
+        /* Grid layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 860px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Neuron Diagram Panel */
+        .neuron-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .neuron-svg-wrapper {
+            width: 100%;
+            height: 400px;
+            position: relative;
+        }
+
+        .input-nodes {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .input-node {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .input-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--warm-white);
+            border: 2px solid var(--matcha-mid);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .input-circle:hover {
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(74, 124, 89, 0.3);
+        }
+
+        .input-circle.active {
+            background: var(--matcha-pale);
+            border-color: var(--matcha-deep);
+            transform: scale(1.1);
+        }
+
+        .input-label {
+            font-size: 12px;
+            font-weight: 400;
+        }
+
+        .neuron-center {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--neuron-a), var(--neuron-b));
+            box-shadow: 0 4px 16px var(--neuron-glow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: 500;
+            transition: all 0.5s ease;
+            line-height: 1.3;
+        }
+
+        @keyframes fire-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.25); }
+        }
+
+        .neuron-center.firing {
+            animation: fire-pulse 0.6s ease;
+        }
+
+        .neuron-label {
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--matcha-mid);
+            text-align: center;
+        }
+
+        .output-node {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .output-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .output-badge.yes {
+            background: var(--matcha-deep);
+            color: white;
+        }
+
+        .output-badge.no {
+            border: 2px solid var(--rust);
+            color: var(--rust);
+            background: transparent;
+        }
+
+        .mini-activation {
+            margin-top: 16px;
+            text-align: center;
+        }
+
+        .mini-activation canvas {
+            border: 1px solid rgba(74, 124, 89, 0.2);
+            border-radius: 8px;
+            background: rgba(16, 26, 16, 0.97);
+        }
+
+        .mini-activation-label {
+            font-size: 11px;
+            color: var(--matcha-mid);
+            margin-top: 6px;
+        }
+
+        .formula-box {
+            background: rgba(45, 74, 45, 0.05);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(74, 124, 89, 0.15);
+            font-size: 12px;
+            line-height: 1.8;
+            font-family: 'DM Mono', monospace;
+            margin-top: 16px;
+        }
+
+        /* Activation Showdown Panel */
+        .tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 12px;
+            background: var(--cream);
+            border: 1px solid rgba(74, 124, 89, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .tab:hover {
+            background: var(--warm-white);
+        }
+
+        .tab.active {
+            background: white;
+            border-left: 3px solid var(--matcha-mid);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-name {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .tab-subtitle {
+            font-size: 10px;
+            color: var(--matcha-mid);
+        }
+
+        .info-card {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            background: var(--warm-white);
+            border: 1px solid rgba(74, 124, 89, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, var(--neuron-a) 0%, transparent 70%);
+            opacity: 0.08;
+            pointer-events: none;
+        }
+
+        .info-card-formula {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .info-card-desc {
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .output-range-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--matcha-pale);
+            color: var(--matcha-deep);
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .compare-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            background: var(--cream);
+            border-radius: 12px;
+            border: 1px solid var(--matcha-mid);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.on {
+            background: var(--matcha-light);
+        }
+
+        .toggle-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background: var(--matcha-deep);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.on .toggle-thumb {
+            left: 26px;
+        }
+
+        .activation-canvas-wrapper {
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            border-radius: 8px;
+        }
+
+        .live-outputs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .live-output-box {
+            padding: 12px;
+            background: var(--cream);
+            border: 1px solid rgba(74, 124, 89, 0.2);
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .live-output-box.active-fn {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .live-output-name {
+            font-size: 10px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .live-output-value {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .live-output-decision {
+            font-size: 11px;
+        }
+
+        /* Weights Panel */
+        .weight-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(74, 124, 89, 0.15);
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .weight-row:hover {
+            border-color: var(--matcha-light);
+        }
+
+        .weight-emoji {
+            font-size: 20px;
+            width: 32px;
+        }
+
+        .weight-name {
+            flex: 1;
+            font-size: 13px;
+        }
+
+        .weight-slider {
+            flex: 2;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, var(--matcha-deep) 0%, var(--matcha-deep) var(--pct, 50%), var(--cream) var(--pct, 50%), var(--cream) 100%);
+            outline: none;
+        }
+
+        .weight-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--matcha-deep);
+            cursor: grab;
+            transition: transform 0.2s ease;
+        }
+
+        .weight-slider::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.3);
+        }
+
+        .weight-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--matcha-deep);
+            cursor: grab;
+            border: none;
+        }
+
+        .bias-row {
+            border-color: rgba(184, 92, 56, 0.3);
+        }
+
+        .bias-row .weight-slider {
+            background: linear-gradient(to right, var(--rust) 0%, var(--rust) var(--pct, 50%), var(--cream) var(--pct, 50%), var(--cream) 100%);
+        }
+
+        .bias-row .weight-slider::-webkit-slider-thumb {
+            background: var(--rust);
+        }
+
+        .bias-row .weight-slider::-moz-range-thumb {
+            background: var(--rust);
+        }
+
+        .bias-row .weight-value {
+            color: var(--rust);
+        }
+
+        .weight-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--matcha-deep);
+            width: 60px;
+            text-align: right;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            padding: 12px;
+            background: rgba(45, 74, 45, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(74, 124, 89, 0.15);
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--matcha-mid);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        /* Decision Boundary Canvas */
+        .canvas-wrapper {
+            text-align: center;
+        }
+
+        .canvas-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 12px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.green {
+            background: var(--matcha-mid);
+        }
+
+        .legend-dot.rust {
+            background: var(--rust);
+        }
+
+        .legend-hint {
+            font-style: italic;
+            color: var(--matcha-mid);
+        }
+
+        /* Training Panel */
+        .sample-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .sample-card {
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .sample-card.positive {
+            background: rgba(143, 188, 139, 0.15);
+        }
+
+        .sample-card.negative {
+            background: rgba(184, 92, 56, 0.15);
+        }
+
+        .sample-card:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .sample-card.active {
+            border-color: var(--matcha-deep);
+            box-shadow: 0 4px 12px rgba(74, 124, 89, 0.4);
+        }
+
+        .sample-emojis {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .sample-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .training-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: none;
+            font-family: 'DM Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--matcha-deep);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--matcha-mid);
+        }
+
+        .btn-secondary {
+            background: var(--clay);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #b89965;
+        }
+
+        .btn-rust {
+            background: var(--rust);
+            color: white;
+        }
+
+        .btn-rust:hover {
+            background: #a04c28;
+        }
+
+        .progress-bar {
+            height: 24px;
+            background: var(--cream);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--matcha-light);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--matcha-deep);
+        }
+
+        .step-explanation {
+            background: rgba(45, 74, 45, 0.05);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(74, 124, 89, 0.15);
+            margin-bottom: 16px;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        .step-explanation h4 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--matcha-mid);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .step-warning {
+            color: var(--rust);
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .training-log {
+            background: rgba(26, 46, 26, 0.96);
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-family: 'DM Mono', monospace;
+            color: var(--matcha-pale);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .log-epoch {
+            color: var(--matcha-light);
+        }
+
+        .log-loss {
+            color: var(--clay);
+        }
+
+        .log-acc {
+            color: #9bc89b;
+        }
+
+        /* Floating tea cup */
+        .float-cup {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            font-size: 48px;
+            animation: float-cup 3s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        @keyframes float-cup {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="float-cup">🍵</div>
+
+    <div class="container">
+        <div class="header">
+            <div class="eyebrow">Perceptron · Interactive Learning</div>
+            <h1>Should I make a <span class="matcha-word">matcha</span>?</h1>
+            <div class="subtitle">A single-neuron decision model, trained on the things that matter</div>
+            <div class="header-divider"></div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Left Column -->
+            <div class="left-col">
+                <!-- Neuron Diagram Panel -->
+                <div class="panel">
+                    <div class="panel-title">Neuron Diagram</div>
+                    <div class="neuron-container">
+                        <svg id="connectionsSvg" width="280" height="360" style="position: absolute;"></svg>
+                        <div style="display: grid; grid-template-columns: 60px 1fr 60px; align-items: center; gap: 20px; width: 100%; position: relative; z-index: 1;">
+                            <div id="inputNodes" style="display: flex; flex-direction: column; gap: 16px;"></div>
+                            <div style="display: flex; flex-direction: column; align-items: center;">
+                                <div id="neuronCenter" class="neuron-center">
+                                    <div id="neuronZ">z=0.00</div>
+                                    <div id="neuronOut">0.50</div>
+                                </div>
+                                <div id="neuronLabel" class="neuron-label">σ(z)</div>
+                            </div>
+                            <div class="output-node">
+                                <svg width="20" height="20" viewBox="0 0 20 20">
+                                    <path d="M2 10 L18 10 M14 6 L18 10 L14 14" stroke="currentColor" stroke-width="2" fill="none"/>
+                                </svg>
+                                <div id="outputBadge" class="output-badge yes">✓ Matcha!</div>
+                            </div>
+                        </div>
+                        <div class="mini-activation">
+                            <canvas id="miniActivationCanvas" width="240" height="32"></canvas>
+                            <div id="miniActivationLabel" class="mini-activation-label">σ(z) =</div>
+                        </div>
+                        <div class="formula-box">
+                            <div id="formulaLine1">z = w₁·x₁ + w₂·x₂ + w₃·x₃ + w₄·x₄ + w₅·x₅ + b</div>
+                            <div id="formulaLine2">= 0.0000 → f(z) = 0.0000</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activation Showdown Panel -->
+                <div class="panel">
+                    <div class="panel-title">Activation Showdown</div>
+                    <div class="tabs">
+                        <div class="tab active" data-fn="sigmoid">
+                            <div class="tab-name">Sigmoid</div>
+                            <div class="tab-subtitle">σ(z) · 1943</div>
+                        </div>
+                        <div class="tab" data-fn="step">
+                            <div class="tab-name">Step</div>
+                            <div class="tab-subtitle">H(z) · 1958</div>
+                        </div>
+                        <div class="tab" data-fn="relu">
+                            <div class="tab-name">ReLU</div>
+                            <div class="tab-subtitle">max(0,z) · 2000</div>
+                        </div>
+                    </div>
+                    <div id="infoCard" class="info-card">
+                        <div class="info-card-formula">σ(z) = 1 / (1 + e⁻ᶻ)</div>
+                        <div class="info-card-desc">Smooth, differentiable, probability output</div>
+                        <span class="output-range-badge">(0, 1)</span>
+                    </div>
+                    <div class="compare-toggle">
+                        <div id="compareToggle" class="toggle-switch">
+                            <div class="toggle-thumb"></div>
+                        </div>
+                        <span>Overlay all three curves</span>
+                    </div>
+                    <div class="activation-canvas-wrapper">
+                        <canvas id="activationCanvas" width="480" height="200"></canvas>
+                    </div>
+                    <div class="live-outputs">
+                        <div class="live-output-box active-fn" data-fn="sigmoid">
+                            <div class="live-output-name">Sigmoid</div>
+                            <div class="live-output-value" id="liveOutputSigmoid">0.50</div>
+                            <div class="live-output-decision" id="liveDecisionSigmoid">✓ Make Matcha</div>
+                        </div>
+                        <div class="live-output-box" data-fn="step">
+                            <div class="live-output-name">Step</div>
+                            <div class="live-output-value" id="liveOutputStep">1</div>
+                            <div class="live-output-decision" id="liveDecisionStep">✓ Make Matcha</div>
+                        </div>
+                        <div class="live-output-box" data-fn="relu">
+                            <div class="live-output-name">ReLU</div>
+                            <div class="live-output-value" id="liveOutputRelu">0.00</div>
+                            <div class="live-output-decision" id="liveDecisionRelu">✗ Skip</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weights & Bias Panel -->
+                <div class="panel">
+                    <div class="panel-title">Weights & Bias</div>
+                    <div id="weightsPanel"></div>
+                    <div class="stats-row">
+                        <div class="stat-box">
+                            <div class="stat-label">z (sum)</div>
+                            <div class="stat-value" id="statZ">0.00</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">P(matcha)</div>
+                            <div class="stat-value" id="statProb">50%</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Epochs</div>
+                            <div class="stat-value" id="statEpoch">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="right-col">
+                <!-- Decision Boundary Canvas -->
+                <div class="panel">
+                    <div class="panel-title">Decision Boundary</div>
+                    <div class="canvas-wrapper">
+                        <canvas id="boundaryCanvas" width="500" height="280"></canvas>
+                        <div class="canvas-legend">
+                            <div class="legend-item">
+                                <div class="legend-dot green"></div>
+                                <span>make matcha ✓</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot rust"></div>
+                                <span>skip matcha ✗</span>
+                            </div>
+                            <div class="legend-hint">click canvas to add a custom point</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Panel -->
+                <div class="panel">
+                    <div class="panel-title">Step-by-Step Training</div>
+                    <div class="sample-grid" id="sampleGrid"></div>
+                    <div class="training-controls">
+                        <button class="btn btn-primary" id="btnStep">⊕ Step Once</button>
+                        <button class="btn btn-primary" id="btnTrain">▶ Train 50</button>
+                        <button class="btn btn-secondary" id="btnReset">↺ Reset</button>
+                        <button class="btn btn-rust" id="btnScramble">⊛ Scramble</button>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%;">acc: 0%</div>
+                    </div>
+                    <div id="stepExplanation" class="step-explanation" style="display: none;"></div>
+                    <div class="training-log" id="trainingLog"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === STATE ===
+        const FEATURES = [
+            { name: 'Need Focus', emoji: '🧠' },
+            { name: 'Tired', emoji: '😴' },
+            { name: 'Have Matcha', emoji: '🌿' },
+            { name: 'Free Time', emoji: '⏰' },
+            { name: 'Had Caffeine', emoji: '☕' }
+        ];
+
+        const TRAINING_DATA = [
+            { x: [1,1,1,1,0], y: 1 },  // 🧠😴🌿⏰
+            { x: [1,0,1,1,0], y: 1 },  // 🧠🌿⏰
+            { x: [0,0,1,1,0], y: 1 },  // 🌿⏰
+            { x: [1,1,1,0,0], y: 1 },  // 🧠😴🌿
+            { x: [0,1,1,1,0], y: 1 },  // 😴🌿⏰
+            { x: [1,1,1,1,1], y: 0 },  // 🧠😴🌿⏰☕
+            { x: [0,0,0,1,0], y: 0 },  // ⏰
+            { x: [0,0,1,0,1], y: 0 },  // 🌿☕
+            { x: [1,0,0,1,0], y: 0 },  // 🧠⏰
+            { x: [0,1,0,0,1], y: 0 },  // 😴☕
+            { x: [0,0,1,1,1], y: 0 },  // 🌿⏰☕
+            { x: [1,1,0,1,0], y: 0 }   // 🧠😴⏰
+        ];
+
+        const INITIAL_WEIGHTS = [0.3, 0.4, 0.8, 0.2, -0.7];
+        const INITIAL_BIAS = -0.5;
+
+        let weights = [...INITIAL_WEIGHTS];
+        let bias = INITIAL_BIAS;
+        let currentInputs = [0, 0, 0, 0, 0];
+        let activeActivation = 'sigmoid';
+        let compareMode = false;
+        let epoch = 0;
+        let stepIndex = 0;
+        let lr = 0.5;
+        let customPoints = [];
+        let isTraining = false;
+
+        const ACTIVATION_CONFIGS = {
+            sigmoid: {
+                neuronA: '#2d4a2d', neuronB: '#4a7c59', neuronGlow: 'rgba(74, 124, 89, 0.5)',
+                curveColor: '#8fbc8b', symbol: 'σ(z)', formula: 'σ(z) = 1 / (1 + e⁻ᶻ)',
+                desc: 'Smooth, differentiable, probability output', range: '(0, 1)'
+            },
+            step: {
+                neuronA: '#2a3a5c', neuronB: '#3d5a8a', neuronGlow: 'rgba(61, 90, 138, 0.5)',
+                curveColor: '#5c7fb8', symbol: 'H(z)', formula: 'H(z) = 1 if z ≥ 0, else 0',
+                desc: 'Original 1958 Rosenblatt perceptron, non-differentiable', range: '{0, 1}'
+            },
+            relu: {
+                neuronA: '#6b2d2d', neuronB: '#a04040', neuronGlow: 'rgba(160, 64, 64, 0.5)',
+                curveColor: '#d05858', symbol: 'ReLU(z)', formula: 'ReLU(z) = max(0, z)',
+                desc: 'Modern deep learning backbone, avoids vanishing gradients', range: '[0, ∞)'
+            }
+        };
+
+        // === ACTIVATION FUNCTIONS ===
+        function sigmoid(z) {
+            return 1 / (1 + Math.exp(-z));
+        }
+
+        function step(z) {
+            return z >= 0 ? 1 : 0;
+        }
+
+        function relu(z) {
+            return Math.max(0, z);
+        }
+
+        function applyActivation(z, fnName) {
+            if (fnName === 'sigmoid') return sigmoid(z);
+            if (fnName === 'step') return step(z);
+            if (fnName === 'relu') return relu(z);
+            return sigmoid(z);
+        }
+
+        // === FORWARD PASS ===
+        function forward(x, fnName = activeActivation) {
+            const z = x.reduce((sum, xi, i) => sum + weights[i] * xi, 0) + bias;
+            const prob = applyActivation(z, fnName);
+            return { z, prob };
+        }
+
+        function predict(x, fnName = activeActivation) {
+            const { z, prob } = forward(x, fnName);
+            if (fnName === 'relu') return z > 0 ? 1 : 0;
+            return prob >= 0.5 ? 1 : 0;
+        }
+
+        // === TRAINING ===
+        function computeLoss() {
+            let loss = 0;
+            for (const sample of TRAINING_DATA) {
+                const { z } = forward(sample.x, 'sigmoid');
+                const p = sigmoid(z);
+                const y = sample.y;
+                loss += y * Math.log(p + 1e-15) + (1 - y) * Math.log(1 - p + 1e-15);
+            }
+            return -loss / TRAINING_DATA.length;
+        }
+
+        function computeAccuracy() {
+            let correct = 0;
+            for (const sample of TRAINING_DATA) {
+                if (predict(sample.x) === sample.y) correct++;
+            }
+            return (correct / TRAINING_DATA.length) * 100;
+        }
+
+        function runSingleStep(manual = false) {
+            const sample = TRAINING_DATA[stepIndex];
+            const { z, prob } = forward(sample.x);
+            const prediction = predict(sample.x);
+
+            let error;
+            if (activeActivation === 'sigmoid') {
+                error = sample.y - prob;
+            } else {
+                error = sample.y - prediction;
+            }
+
+            const oldWeights = [...weights];
+            const oldBias = bias;
+
+            for (let i = 0; i < weights.length; i++) {
+                weights[i] += lr * error * sample.x[i];
+            }
+            bias += lr * error;
+
+            if (manual) {
+                showStepExplanation(sample, z, prob, prediction, error, oldWeights, oldBias);
+            }
+
+            stepIndex = (stepIndex + 1) % TRAINING_DATA.length;
+            if (stepIndex === 0) epoch++;
+
+            const loss = computeLoss();
+            const acc = computeAccuracy();
+
+            if (stepIndex === 0 || manual) {
+                logTrainingStep(loss, acc);
+            }
+
+            updateAll();
+
+            if (manual) {
+                document.getElementById('neuronCenter').classList.add('firing');
+                setTimeout(() => {
+                    document.getElementById('neuronCenter').classList.remove('firing');
+                }, 600);
+            }
+        }
+
+        function showStepExplanation(sample, z, prob, prediction, error, oldWeights, oldBias) {
+            const panel = document.getElementById('stepExplanation');
+            const emojis = sample.x.map((val, i) => val ? FEATURES[i].emoji : '').join('');
+
+            let errorNote = '';
+            if (Math.abs(error) < 0.01) errorNote = ' (already correct!)';
+
+            let fnNote = '';
+            if (activeActivation === 'step') {
+                fnNote = '<div class="step-warning">⚠ Step fn non-differentiable; using perceptron rule</div>';
+            } else if (activeActivation === 'relu') {
+                fnNote = '<div class="step-warning">⚡ ReLU gradient: 1 when z>0, else 0 (dead neuron zone)</div>';
+            }
+
+            panel.innerHTML = `
+                <h4>1. Sample</h4>
+                <div>Features: ${emojis} | True label: ${sample.y === 1 ? '✓ Make Matcha' : '✗ Skip'}</div>
+
+                <h4>2. Forward Pass</h4>
+                <div>z = ${z.toFixed(4)} → ${activeActivation}: ${prob.toFixed(4)} → prediction: ${prediction}${errorNote}</div>
+
+                <h4>3. Error δ</h4>
+                <div>δ = y - ${activeActivation === 'sigmoid' ? 'f(z)' : 'pred'} = ${sample.y} - ${(activeActivation === 'sigmoid' ? prob : prediction).toFixed(4)} = ${error.toFixed(4)}</div>
+                ${fnNote}
+
+                <h4>4. Weight Update</h4>
+                <div>Δw = η·δ·x = 0.5 × ${error.toFixed(4)} × x</div>
+                <div>bias: ${oldBias.toFixed(3)} → ${bias.toFixed(3)}</div>
+            `;
+            panel.style.display = 'block';
+        }
+
+        function logTrainingStep(loss, acc) {
+            const log = document.getElementById('trainingLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-epoch">ep.${epoch.toString().padStart(3, '0')}</span> | <span class="log-loss">L:${loss.toFixed(3)}</span> | <span class="log-acc">acc:${acc.toFixed(0)}%</span> | [${activeActivation}]`;
+            log.appendChild(entry);
+
+            if (log.children.length > 40) {
+                log.removeChild(log.firstChild);
+            }
+
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function trainN(n) {
+            if (isTraining) return;
+            isTraining = true;
+            let count = 0;
+            const interval = setInterval(() => {
+                runSingleStep(false);
+                count++;
+                if (count >= n * TRAINING_DATA.length) {
+                    clearInterval(interval);
+                    isTraining = false;
+                }
+            }, 20);
+        }
+
+        function resetModel() {
+            weights = [...INITIAL_WEIGHTS];
+            bias = INITIAL_BIAS;
+            epoch = 0;
+            stepIndex = 0;
+            document.getElementById('trainingLog').innerHTML = '';
+            document.getElementById('stepExplanation').style.display = 'none';
+            updateAll();
+        }
+
+        function scrambleWeights() {
+            weights = weights.map(() => (Math.random() * 4 - 2));
+            bias = Math.random() * 4 - 2;
+            updateAll();
+        }
+
+        // === ACTIVATION SWITCHING ===
+        function setActivation(name) {
+            activeActivation = name;
+            const config = ACTIVATION_CONFIGS[name];
+
+            document.documentElement.style.setProperty('--neuron-a', config.neuronA);
+            document.documentElement.style.setProperty('--neuron-b', config.neuronB);
+            document.documentElement.style.setProperty('--neuron-glow', config.neuronGlow);
+            document.documentElement.style.setProperty('--markerColor', config.curveColor);
+
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.fn === name);
+            });
+
+            document.querySelectorAll('.live-output-box').forEach(box => {
+                box.classList.toggle('active-fn', box.dataset.fn === name);
+            });
+
+            const infoCard = document.getElementById('infoCard');
+            infoCard.innerHTML = `
+                <div class="info-card-formula">${config.formula}</div>
+                <div class="info-card-desc">${config.desc}</div>
+                <span class="output-range-badge">${config.range}</span>
+            `;
+
+            document.getElementById('neuronLabel').textContent = config.symbol;
+            document.getElementById('miniActivationLabel').textContent = config.symbol + ' =';
+
+            updateAll();
+        }
+
+        // === RENDERING ===
+        function updateAll() {
+            const { z, prob } = forward(currentInputs);
+            const prediction = predict(currentInputs);
+
+            document.getElementById('neuronZ').textContent = `z=${z.toFixed(2)}`;
+            document.getElementById('neuronOut').textContent = prob.toFixed(2);
+
+            const outputBadge = document.getElementById('outputBadge');
+            if (prediction === 1) {
+                outputBadge.className = 'output-badge yes';
+                outputBadge.textContent = '✓ Matcha!';
+            } else {
+                outputBadge.className = 'output-badge no';
+                outputBadge.textContent = '✗ Skip';
+            }
+
+            let probText = (prob * 100).toFixed(0) + '%';
+            if (activeActivation === 'relu') {
+                probText = prob.toFixed(2);
+            }
+            document.getElementById('statZ').textContent = z.toFixed(2);
+            document.getElementById('statProb').textContent = probText;
+            document.getElementById('statEpoch').textContent = epoch;
+
+            const weightSum = currentInputs.reduce((sum, xi, i) => sum + weights[i] * xi, 0);
+            document.getElementById('formulaLine1').textContent = `z = ${weights.map((w, i) => `w₊${i+1}·x₊${i+1}`).join(' + ')} + b`.replace(/₊/g, '₀').replace(/₀/g, '').replace(/([0-9])/g, (m) => '₀₁₂₃₄₅₆₇₈₉'[m]);
+            document.getElementById('formulaLine2').textContent = `= ${z.toFixed(4)} → f(z) = ${prob.toFixed(4)}`;
+
+            updateLiveOutputBoxes(z);
+            drawConnections();
+            drawActivationCurve();
+            drawSigmoidViz(z, prob);
+            drawDecisionBoundary();
+            updateSampleCards();
+            updateProgressBar();
+        }
+
+        function updateLiveOutputBoxes(z) {
+            const outputs = {
+                sigmoid: sigmoid(z),
+                step: step(z),
+                relu: relu(z)
+            };
+
+            for (const [fn, val] of Object.entries(outputs)) {
+                const valEl = document.getElementById(`liveOutput${fn.charAt(0).toUpperCase() + fn.slice(1)}`);
+                const decEl = document.getElementById(`liveDecision${fn.charAt(0).toUpperCase() + fn.slice(1)}`);
+
+                valEl.textContent = val.toFixed(2);
+
+                let decision;
+                if (fn === 'relu') {
+                    decision = z > 0 ? 1 : 0;
+                } else {
+                    decision = val >= 0.5 ? 1 : 0;
+                }
+
+                decEl.textContent = decision === 1 ? '✓ Make Matcha' : '✗ Skip';
+                const config = ACTIVATION_CONFIGS[fn];
+                decEl.style.color = decision === 1 ? config.curveColor : '#b85c38';
+            }
+        }
+
+        function drawConnections() {
+            const svg = document.getElementById('connectionsSvg');
+            svg.innerHTML = '';
+
+            const inputX = 30;
+            const neuronX = 140;
+            const neuronY = 180;
+
+            currentInputs.forEach((val, i) => {
+                const y = 30 + i * 64;
+                const w = weights[i];
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', inputX + 48);
+                line.setAttribute('y1', y + 24);
+                line.setAttribute('x2', neuronX);
+                line.setAttribute('y2', neuronY);
+
+                const color = w >= 0 ? '#4a7c59' : '#b85c38';
+                const opacity = Math.min(Math.abs(w) / 2, 1);
+                line.setAttribute('stroke', color);
+                line.setAttribute('stroke-opacity', opacity);
+                line.setAttribute('stroke-width', val ? '2.5' : '1.5');
+                if (w < 0) line.setAttribute('stroke-dasharray', '4,4');
+
+                svg.appendChild(line);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                const midX = inputX + 48 + (neuronX - inputX - 48) * 0.4;
+                const midY = y + 24 + (neuronY - y - 24) * 0.4;
+                text.setAttribute('x', midX);
+                text.setAttribute('y', midY);
+                text.setAttribute('font-size', '10');
+                text.setAttribute('fill', color);
+                text.textContent = w.toFixed(2);
+                svg.appendChild(text);
+            });
+        }
+
+        function drawSigmoidViz(z, prob) {
+            const canvas = document.getElementById('miniActivationCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = 'rgba(16, 26, 16, 0.97)';
+            ctx.fillRect(0, 0, w, h);
+
+            const zRange = 10;
+            const xScale = w / zRange;
+            const yScale = h;
+
+            ctx.beginPath();
+            for (let px = 0; px < w; px++) {
+                const zVal = (px / w) * zRange - zRange / 2;
+                const yVal = applyActivation(zVal, activeActivation);
+                const y = activeActivation === 'relu' ? h - (yVal / 5) * h : h - yVal * h;
+                if (px === 0) ctx.moveTo(px, y);
+                else ctx.lineTo(px, y);
+            }
+            ctx.strokeStyle = ACTIVATION_CONFIGS[activeActivation].curveColor;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const zNorm = (z + zRange / 2) / zRange;
+            const dotX = zNorm * w;
+            const dotY = activeActivation === 'relu' ? h - (prob / 5) * h : h - prob * h;
+
+            const markerColor = prob >= 0.5 || (activeActivation === 'relu' && z > 0) ? ACTIVATION_CONFIGS[activeActivation].curveColor : '#b85c38';
+            ctx.fillStyle = markerColor;
+            ctx.beginPath();
+            ctx.arc(dotX, dotY, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawActivationCurve() {
+            const canvas = document.getElementById('activationCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const pad = { top: 20, right: 28, bottom: 32, left: 44 };
+
+            ctx.fillStyle = 'rgba(16, 26, 16, 0.97)';
+            ctx.fillRect(0, 0, w, h);
+
+            const plotW = w - pad.left - pad.right;
+            const plotH = h - pad.top - pad.bottom;
+            const zMin = -5, zMax = 5;
+            const zRange = zMax - zMin;
+
+            // Grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let z = -5; z <= 5; z++) {
+                const x = pad.left + ((z - zMin) / zRange) * plotW;
+                ctx.beginPath();
+                ctx.moveTo(x, pad.top);
+                ctx.lineTo(x, pad.top + plotH);
+                ctx.stroke();
+            }
+
+            const yTicks = activeActivation === 'relu' && !compareMode ? [0, 1, 2, 3, 4, 5] : [0, 0.25, 0.5, 0.75, 1];
+            yTicks.forEach(y => {
+                const yPos = pad.top + plotH - (y / (yTicks[yTicks.length - 1])) * plotH;
+                ctx.beginPath();
+                ctx.moveTo(pad.left, yPos);
+                ctx.lineTo(pad.left + plotW, yPos);
+                ctx.stroke();
+            });
+
+            // Axes
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(pad.left, pad.top + plotH);
+            ctx.lineTo(pad.left + plotW, pad.top + plotH);
+            ctx.moveTo(pad.left + plotW / 2, pad.top);
+            ctx.lineTo(pad.left + plotW / 2, pad.top + plotH);
+            ctx.stroke();
+
+            // Threshold line
+            if (activeActivation !== 'relu' || compareMode) {
+                const threshY = pad.top + plotH * 0.5;
+                ctx.setLineDash([4, 4]);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.beginPath();
+                ctx.moveTo(pad.left, threshY);
+                ctx.lineTo(pad.left + plotW, threshY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.font = '10px DM Mono';
+                ctx.fillText('0.5', pad.left - 30, threshY + 3);
+            }
+
+            // Curves
+            const drawCurve = (fnName, color) => {
+                const config = ACTIVATION_CONFIGS[fnName];
+                ctx.beginPath();
+                for (let px = 0; px < plotW; px++) {
+                    const z = zMin + (px / plotW) * zRange;
+                    let y = applyActivation(z, fnName);
+                    if (fnName === 'relu' && compareMode) y = Math.min(y, 1);
+
+                    const yMax = (fnName === 'relu' && !compareMode) ? 5 : 1;
+                    const yPos = pad.top + plotH - (y / yMax) * plotH;
+                    const xPos = pad.left + px;
+
+                    if (px === 0) ctx.moveTo(xPos, yPos);
+                    else ctx.lineTo(xPos, yPos);
+                }
+
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = color;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                if (compareMode) {
+                    ctx.fillStyle = color;
+                    ctx.font = '10px DM Mono';
+                    const labelY = fnName === 'sigmoid' ? 30 : fnName === 'step' ? 50 : 70;
+                    ctx.fillText(config.symbol, w - 70, labelY);
+                }
+            };
+
+            if (compareMode) {
+                drawCurve('sigmoid', ACTIVATION_CONFIGS.sigmoid.curveColor);
+                drawCurve('step', ACTIVATION_CONFIGS.step.curveColor);
+                drawCurve('relu', ACTIVATION_CONFIGS.relu.curveColor);
+            } else {
+                drawCurve(activeActivation, ACTIVATION_CONFIGS[activeActivation].curveColor);
+            }
+
+            // Current z marker
+            const { z, prob } = forward(currentInputs);
+            const zNorm = (z - zMin) / zRange;
+            const markerX = pad.left + zNorm * plotW;
+
+            let markerY;
+            if (activeActivation === 'relu' && !compareMode) {
+                markerY = pad.top + plotH - (prob / 5) * plotH;
+            } else {
+                markerY = pad.top + plotH - prob * plotH;
+            }
+
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.beginPath();
+            ctx.moveTo(markerX, pad.top);
+            ctx.lineTo(markerX, pad.top + plotH);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            const markerColor = prob >= 0.5 || (activeActivation === 'relu' && z > 0) ? ACTIVATION_CONFIGS[activeActivation].curveColor : '#b85c38';
+            ctx.fillStyle = markerColor;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = markerColor;
+            ctx.beginPath();
+            ctx.arc(markerX, markerY, compareMode ? 5 : 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '10px DM Mono';
+            ctx.fillText(`z = ${z.toFixed(2)}`, markerX + 10, pad.top + 12);
+
+            if (!compareMode) {
+                ctx.fillText(`${prob.toFixed(2)}`, markerX + 10, markerY);
+            }
+
+            // Axis labels
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.font = '11px DM Mono';
+            ctx.fillText('z (weighted sum)', pad.left + plotW / 2 - 50, h - 8);
+
+            ctx.save();
+            ctx.translate(12, pad.top + plotH / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(ACTIVATION_CONFIGS[activeActivation].symbol, 0, 0);
+            ctx.restore();
+
+            // Tick labels
+            for (let z = -5; z <= 5; z++) {
+                const x = pad.left + ((z - zMin) / zRange) * plotW;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.font = '9px DM Mono';
+                ctx.fillText(z.toString(), x - 4, h - 16);
+            }
+
+            yTicks.forEach(y => {
+                const yPos = pad.top + plotH - (y / (yTicks[yTicks.length - 1])) * plotH;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.font = '9px DM Mono';
+                ctx.fillText(y.toFixed(activeActivation === 'relu' && !compareMode ? 0 : 2), pad.left - 30, yPos + 3);
+            });
+        }
+
+        function drawDecisionBoundary() {
+            const canvas = document.getElementById('boundaryCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#faf6ef';
+            ctx.fillRect(0, 0, w, h);
+
+            const pad = 30;
+            const plotW = w - 2 * pad;
+            const plotH = h - 2 * pad;
+
+            // Heatmap
+            const context = [0, 0, 1, 1, 0]; // x3=1, x4=1, x5=0
+            const imageData = ctx.createImageData(plotW, plotH);
+
+            for (let py = 0; py < plotH; py++) {
+                for (let px = 0; px < plotW; px++) {
+                    const x1 = px / plotW;
+                    const x2 = (plotH - py) / plotH;
+                    const x = [x1, x2, ...context.slice(2)];
+                    const { z, prob } = forward(x);
+                    const decision = predict(x);
+
+                    let intensity;
+                    if (activeActivation === 'relu') {
+                        intensity = decision === 1 ? Math.min(prob / 3, 1) : 0.7;
+                    } else {
+                        intensity = decision === 1 ? prob : (1 - prob);
+                    }
+
+                    const idx = (py * plotW + px) * 4;
+                    if (decision === 1) {
+                        imageData.data[idx] = 45 + intensity * 100;
+                        imageData.data[idx + 1] = 74 + intensity * 100;
+                        imageData.data[idx + 2] = 45 + intensity * 100;
+                    } else {
+                        imageData.data[idx] = 184;
+                        imageData.data[idx + 1] = 92 - intensity * 40;
+                        imageData.data[idx + 2] = 56 - intensity * 30;
+                    }
+                    imageData.data[idx + 3] = 255 * intensity;
+                }
+            }
+
+            ctx.putImageData(imageData, pad, pad);
+
+            // Decision boundary line
+            const contextSum = context[2] * weights[2] + context[3] * weights[3] + context[4] * weights[4] + bias;
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = 'rgba(250, 246, 239, 0.9)';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (let px = 0; px < plotW; px++) {
+                const x1 = px / plotW;
+                const x2 = -(weights[0] * x1 + contextSum) / weights[1];
+                if (x2 >= 0 && x2 <= 1) {
+                    const y = pad + plotH - x2 * plotH;
+                    if (px === 0) ctx.moveTo(pad + px, y);
+                    else ctx.lineTo(pad + px, y);
+                }
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Training points
+            TRAINING_DATA.forEach(sample => {
+                const x = pad + sample.x[0] * plotW;
+                const y = pad + plotH - sample.x[1] * plotH;
+                const pred = predict(sample.x);
+                const correct = pred === sample.y;
+
+                ctx.fillStyle = sample.y === 1 ? '#4a7c59' : '#b85c38';
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = correct ? 'white' : '#ffeb3b';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(sample.y === 1 ? '✓' : '✗', x, y);
+            });
+
+            // Custom points
+            customPoints.forEach(pt => {
+                const x = pad + pt.x * plotW;
+                const y = pad + plotH - pt.y * plotH;
+                const pred = predict([pt.x, pt.y, ...context.slice(2)]);
+
+                ctx.fillStyle = pred === 1 ? 'rgba(74, 124, 89, 0.6)' : 'rgba(184, 92, 56, 0.6)';
+                ctx.beginPath();
+                ctx.arc(x, y, 7, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('?', x, y);
+            });
+
+            // Labels
+            ctx.fillStyle = '#2d4a2d';
+            ctx.font = '12px DM Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText('← Focus Need (x₁) →', w / 2, h - 8);
+
+            ctx.save();
+            ctx.translate(8, h / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('← Tiredness (x₂) →', 0, 0);
+            ctx.restore();
+
+            // Badges
+            ctx.fillStyle = ACTIVATION_CONFIGS[activeActivation].curveColor;
+            ctx.font = '11px DM Mono';
+            ctx.fillText(ACTIVATION_CONFIGS[activeActivation].symbol, pad + 50, pad + plotH - 10);
+
+            ctx.fillStyle = '#2d4a2d';
+            ctx.font = '10px DM Mono';
+            ctx.fillText('context: 🌿 have matcha, ⏰ free', w - 130, pad + 15);
+        }
+
+        function updateSampleCards() {
+            TRAINING_DATA.forEach((sample, i) => {
+                const card = document.querySelector(`[data-sample="${i}"]`);
+                if (card) {
+                    card.classList.toggle('active', i === stepIndex);
+                }
+            });
+        }
+
+        function updateProgressBar() {
+            const acc = computeAccuracy();
+            const fill = document.getElementById('progressFill');
+            fill.style.width = acc + '%';
+            fill.textContent = `acc: ${acc.toFixed(0)}%`;
+        }
+
+        // === BUILD UI ===
+        function buildInputNodes() {
+            const container = document.getElementById('inputNodes');
+            container.innerHTML = '';
+            FEATURES.forEach((feat, i) => {
+                const div = document.createElement('div');
+                div.style.cssText = 'display: flex; align-items: center; gap: 8px; cursor: pointer;';
+                div.innerHTML = `
+                    <div class="input-circle ${currentInputs[i] ? 'active' : ''}" data-index="${i}">
+                        ${feat.emoji}
+                    </div>
+                    <div style="font-size: 11px;">
+                        <div>${feat.name}</div>
+                        <div style="color: var(--matcha-mid);">x=${currentInputs[i]}</div>
+                    </div>
+                `;
+                div.addEventListener('click', () => {
+                    currentInputs[i] = currentInputs[i] === 0 ? 1 : 0;
+                    buildInputNodes();
+                    updateAll();
+                });
+                container.appendChild(div);
+            });
+        }
+
+        function buildWeightsPanel() {
+            const container = document.getElementById('weightsPanel');
+            container.innerHTML = '';
+
+            FEATURES.forEach((feat, i) => {
+                const row = document.createElement('div');
+                row.className = 'weight-row';
+                const pct = ((weights[i] + 2) / 4) * 100;
+                row.innerHTML = `
+                    <div class="weight-emoji">${feat.emoji}</div>
+                    <div class="weight-name">${feat.name}</div>
+                    <input type="range" class="weight-slider" min="-2" max="2" step="0.05" value="${weights[i]}" data-index="${i}" style="--pct: ${pct}%">
+                    <div class="weight-value">${weights[i].toFixed(2)}</div>
+                `;
+                container.appendChild(row);
+            });
+
+            const biasRow = document.createElement('div');
+            biasRow.className = 'weight-row bias-row';
+            const pct = ((bias + 2) / 4) * 100;
+            biasRow.innerHTML = `
+                <div class="weight-emoji">⚖️</div>
+                <div class="weight-name">Bias</div>
+                <input type="range" class="weight-slider" min="-2" max="2" step="0.05" value="${bias}" id="biasSlider" style="--pct: ${pct}%">
+                <div class="weight-value">${bias.toFixed(2)}</div>
+            `;
+            container.appendChild(biasRow);
+
+            container.querySelectorAll('.weight-slider').forEach(slider => {
+                slider.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    const pct = ((val + 2) / 4) * 100;
+                    e.target.style.setProperty('--pct', pct + '%');
+
+                    if (e.target.id === 'biasSlider') {
+                        bias = val;
+                        e.target.nextElementSibling.textContent = val.toFixed(2);
+                    } else {
+                        const idx = parseInt(e.target.dataset.index);
+                        weights[idx] = val;
+                        e.target.nextElementSibling.textContent = val.toFixed(2);
+                    }
+                    updateAll();
+                });
+            });
+        }
+
+        function buildSampleCards() {
+            const grid = document.getElementById('sampleGrid');
+            grid.innerHTML = '';
+
+            TRAINING_DATA.forEach((sample, i) => {
+                const card = document.createElement('div');
+                card.className = `sample-card ${sample.y === 1 ? 'positive' : 'negative'}`;
+                card.dataset.sample = i;
+
+                const emojis = sample.x.map((val, j) => val ? FEATURES[j].emoji : '').join('');
+                card.innerHTML = `
+                    <div class="sample-emojis">${emojis}</div>
+                    <div class="sample-label">${sample.y === 1 ? '✓ Make Matcha' : '✗ Skip'}</div>
+                `;
+
+                card.addEventListener('click', () => {
+                    stepIndex = i;
+                    runSingleStep(true);
+                });
+
+                grid.appendChild(card);
+            });
+        }
+
+        // === EVENT LISTENERS ===
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                setActivation(tab.dataset.fn);
+            });
+        });
+
+        document.getElementById('compareToggle').addEventListener('click', (e) => {
+            compareMode = !compareMode;
+            e.target.classList.toggle('on', compareMode);
+            updateAll();
+        });
+
+        document.getElementById('btnStep').addEventListener('click', () => runSingleStep(true));
+        document.getElementById('btnTrain').addEventListener('click', () => trainN(50));
+        document.getElementById('btnReset').addEventListener('click', resetModel);
+        document.getElementById('btnScramble').addEventListener('click', scrambleWeights);
+
+        document.getElementById('boundaryCanvas').addEventListener('click', (e) => {
+            const canvas = e.target;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left - 30) / (canvas.width - 60);
+            const y = 1 - (e.clientY - rect.top - 30) / (canvas.height - 60);
+
+            if (x >= 0 && x <= 1 && y >= 0 && y <= 1) {
+                customPoints.push({ x, y });
+                if (customPoints.length > 5) customPoints.shift();
+                drawDecisionBoundary();
+            }
+        });
+
+        // === INIT ===
+        buildInputNodes();
+        buildWeightsPanel();
+        buildSampleCards();
+        setActivation('sigmoid');
+        updateAll();
+    </script>
+</body>
+</html>
