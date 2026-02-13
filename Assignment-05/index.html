@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boid Mini Lab - Flocking Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+
+        .canvas-wrapper {
+            margin-bottom: 30px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            background: #0a0e27;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .control-group label {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #dee2e6;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.2);
+        }
+
+        .value-display {
+            min-width: 50px;
+            text-align: right;
+            font-weight: 600;
+            color: #667eea;
+            font-size: 0.95em;
+        }
+
+        .presets {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1em;
+        }
+
+        .preset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .preset-btn:active {
+            transform: translateY(0);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1em;
+        }
+
+        .action-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .presets {
+                flex-direction: column;
+            }
+
+            .preset-btn {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐦 Boid Mini Lab</h1>
+
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="1140" height="600"></canvas>
+        </div>
+
+        <div class="presets">
+            <button class="preset-btn" onclick="applyPreset('schooling')">🐟 Schooling</button>
+            <button class="preset-btn" onclick="applyPreset('flocking')">🦅 Flocking</button>
+            <button class="preset-btn" onclick="applyPreset('swarming')">🐝 Swarming</button>
+            <button class="preset-btn" onclick="applyPreset('chaotic')">💫 Chaotic</button>
+        </div>
+
+        <div class="action-buttons">
+            <button class="action-btn" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+            <button class="action-btn" onclick="resetSimulation()">↺ Reset</button>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="boidCount">Number of Boids</label>
+                <div class="slider-container">
+                    <input type="range" id="boidCount" min="10" max="300" value="100" step="10">
+                    <span class="value-display" id="boidCountValue">100</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="separation">Separation</label>
+                <div class="slider-container">
+                    <input type="range" id="separation" min="0" max="3" value="1.5" step="0.1">
+                    <span class="value-display" id="separationValue">1.5</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="alignment">Alignment</label>
+                <div class="slider-container">
+                    <input type="range" id="alignment" min="0" max="3" value="1.0" step="0.1">
+                    <span class="value-display" id="alignmentValue">1.0</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="cohesion">Cohesion</label>
+                <div class="slider-container">
+                    <input type="range" id="cohesion" min="0" max="3" value="1.0" step="0.1">
+                    <span class="value-display" id="cohesionValue">1.0</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="maxSpeed">Max Speed</label>
+                <div class="slider-container">
+                    <input type="range" id="maxSpeed" min="1" max="10" value="4" step="0.5">
+                    <span class="value-display" id="maxSpeedValue">4.0</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="maxForce">Max Force</label>
+                <div class="slider-container">
+                    <input type="range" id="maxForce" min="0.05" max="0.5" value="0.2" step="0.05">
+                    <span class="value-display" id="maxForceValue">0.20</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="visionRadius">Vision Radius</label>
+                <div class="slider-container">
+                    <input type="range" id="visionRadius" min="20" max="150" value="50" step="5">
+                    <span class="value-display" id="visionRadiusValue">50</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="separationRadius">Separation Radius</label>
+                <div class="slider-container">
+                    <input type="range" id="separationRadius" min="10" max="80" value="25" step="5">
+                    <span class="value-display" id="separationRadiusValue">25</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">Boid Count</div>
+                <div class="stat-value" id="statBoidCount">100</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">FPS</div>
+                <div class="stat-value" id="statFPS">60</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Avg Speed</div>
+                <div class="stat-value" id="statAvgSpeed">0.0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Parameters
+        let params = {
+            boidCount: 100,
+            separation: 1.5,
+            alignment: 1.0,
+            cohesion: 1.0,
+            maxSpeed: 4,
+            maxForce: 0.2,
+            visionRadius: 50,
+            separationRadius: 25
+        };
+
+        let boids = [];
+        let isPaused = false;
+        let lastTime = performance.now();
+        let fps = 60;
+        let frameCount = 0;
+        let fpsTime = 0;
+
+        // Boid class
+        class Boid {
+            constructor(x, y) {
+                this.position = { x: x || Math.random() * canvas.width, y: y || Math.random() * canvas.height };
+                this.velocity = {
+                    x: Math.random() * 2 - 1,
+                    y: Math.random() * 2 - 1
+                };
+                this.acceleration = { x: 0, y: 0 };
+                this.hue = 200 + Math.random() * 40;
+            }
+
+            edges() {
+                if (this.position.x > canvas.width) this.position.x = 0;
+                else if (this.position.x < 0) this.position.x = canvas.width;
+
+                if (this.position.y > canvas.height) this.position.y = 0;
+                else if (this.position.y < 0) this.position.y = canvas.height;
+            }
+
+            align(boids) {
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+
+                for (let other of boids) {
+                    let d = this.distance(this.position, other.position);
+                    if (other !== this && d < params.visionRadius) {
+                        steering.x += other.velocity.x;
+                        steering.y += other.velocity.y;
+                        total++;
+                    }
+                }
+
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    steering = this.setMag(steering, params.maxSpeed);
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    steering = this.limit(steering, params.maxForce);
+                }
+
+                return steering;
+            }
+
+            cohesion(boids) {
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+
+                for (let other of boids) {
+                    let d = this.distance(this.position, other.position);
+                    if (other !== this && d < params.visionRadius) {
+                        steering.x += other.position.x;
+                        steering.y += other.position.y;
+                        total++;
+                    }
+                }
+
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    steering.x -= this.position.x;
+                    steering.y -= this.position.y;
+                    steering = this.setMag(steering, params.maxSpeed);
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    steering = this.limit(steering, params.maxForce);
+                }
+
+                return steering;
+            }
+
+            separation(boids) {
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+
+                for (let other of boids) {
+                    let d = this.distance(this.position, other.position);
+                    if (other !== this && d < params.separationRadius) {
+                        let diff = {
+                            x: this.position.x - other.position.x,
+                            y: this.position.y - other.position.y
+                        };
+                        diff.x /= d * d;
+                        diff.y /= d * d;
+                        steering.x += diff.x;
+                        steering.y += diff.y;
+                        total++;
+                    }
+                }
+
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    steering = this.setMag(steering, params.maxSpeed);
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    steering = this.limit(steering, params.maxForce);
+                }
+
+                return steering;
+            }
+
+            flock(boids) {
+                let alignment = this.align(boids);
+                let cohesion = this.cohesion(boids);
+                let separation = this.separation(boids);
+
+                this.acceleration.x += alignment.x * params.alignment;
+                this.acceleration.y += alignment.y * params.alignment;
+
+                this.acceleration.x += cohesion.x * params.cohesion;
+                this.acceleration.y += cohesion.y * params.cohesion;
+
+                this.acceleration.x += separation.x * params.separation;
+                this.acceleration.y += separation.y * params.separation;
+            }
+
+            update() {
+                this.velocity.x += this.acceleration.x;
+                this.velocity.y += this.acceleration.y;
+                this.velocity = this.limit(this.velocity, params.maxSpeed);
+
+                this.position.x += this.velocity.x;
+                this.position.y += this.velocity.y;
+
+                this.acceleration.x = 0;
+                this.acceleration.y = 0;
+            }
+
+            show() {
+                let angle = Math.atan2(this.velocity.y, this.velocity.x);
+
+                ctx.save();
+                ctx.translate(this.position.x, this.position.y);
+                ctx.rotate(angle);
+
+                ctx.fillStyle = `hsl(${this.hue}, 70%, 60%)`;
+                ctx.beginPath();
+                ctx.moveTo(8, 0);
+                ctx.lineTo(-8, -4);
+                ctx.lineTo(-8, 4);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            distance(a, b) {
+                let dx = a.x - b.x;
+                let dy = a.y - b.y;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            setMag(vec, mag) {
+                let len = Math.sqrt(vec.x * vec.x + vec.y * vec.y);
+                if (len > 0) {
+                    return { x: (vec.x / len) * mag, y: (vec.y / len) * mag };
+                }
+                return { x: 0, y: 0 };
+            }
+
+            limit(vec, max) {
+                let len = Math.sqrt(vec.x * vec.x + vec.y * vec.y);
+                if (len > max) {
+                    return { x: (vec.x / len) * max, y: (vec.y / len) * max };
+                }
+                return vec;
+            }
+
+            getSpeed() {
+                return Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
+            }
+        }
+
+        // Initialize boids
+        function initBoids() {
+            boids = [];
+            for (let i = 0; i < params.boidCount; i++) {
+                boids.push(new Boid());
+            }
+            updateStats();
+        }
+
+        // Adjust boid count
+        function adjustBoidCount(newCount) {
+            if (newCount > boids.length) {
+                for (let i = boids.length; i < newCount; i++) {
+                    boids.push(new Boid());
+                }
+            } else if (newCount < boids.length) {
+                boids.splice(newCount);
+            }
+            updateStats();
+        }
+
+        // Animation loop
+        function animate() {
+            if (!isPaused) {
+                // Motion blur effect
+                ctx.fillStyle = 'rgba(10, 14, 39, 0.15)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                for (let boid of boids) {
+                    boid.edges();
+                    boid.flock(boids);
+                    boid.update();
+                    boid.show();
+                }
+
+                // Calculate FPS
+                let currentTime = performance.now();
+                let deltaTime = currentTime - lastTime;
+                lastTime = currentTime;
+
+                frameCount++;
+                fpsTime += deltaTime;
+
+                if (fpsTime >= 1000) {
+                    fps = Math.round(frameCount);
+                    frameCount = 0;
+                    fpsTime = 0;
+                    updateStats();
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('statBoidCount').textContent = boids.length;
+            document.getElementById('statFPS').textContent = fps;
+
+            let totalSpeed = 0;
+            for (let boid of boids) {
+                totalSpeed += boid.getSpeed();
+            }
+            let avgSpeed = boids.length > 0 ? (totalSpeed / boids.length).toFixed(2) : 0;
+            document.getElementById('statAvgSpeed').textContent = avgSpeed;
+        }
+
+        // Setup controls
+        function setupControls() {
+            const controls = ['boidCount', 'separation', 'alignment', 'cohesion', 'maxSpeed', 'maxForce', 'visionRadius', 'separationRadius'];
+
+            controls.forEach(control => {
+                const slider = document.getElementById(control);
+                const valueDisplay = document.getElementById(control + 'Value');
+
+                slider.addEventListener('input', (e) => {
+                    let value = parseFloat(e.target.value);
+
+                    if (control === 'boidCount') {
+                        params.boidCount = value;
+                        adjustBoidCount(value);
+                        valueDisplay.textContent = value;
+                    } else {
+                        params[control] = value;
+                        valueDisplay.textContent = value.toFixed(2);
+                    }
+                });
+            });
+        }
+
+        // Presets
+        const presets = {
+            schooling: {
+                separation: 2.5,
+                alignment: 1.5,
+                cohesion: 1.0,
+                maxSpeed: 3.5,
+                maxForce: 0.2,
+                visionRadius: 50,
+                separationRadius: 25
+            },
+            flocking: {
+                separation: 1.5,
+                alignment: 1.0,
+                cohesion: 1.0,
+                maxSpeed: 4,
+                maxForce: 0.2,
+                visionRadius: 50,
+                separationRadius: 25
+            },
+            swarming: {
+                separation: 1.0,
+                alignment: 0.5,
+                cohesion: 2.0,
+                maxSpeed: 5,
+                maxForce: 0.2,
+                visionRadius: 50,
+                separationRadius: 25
+            },
+            chaotic: {
+                separation: 0.3,
+                alignment: 0.2,
+                cohesion: 0.3,
+                maxSpeed: 6,
+                maxForce: 0.2,
+                visionRadius: 50,
+                separationRadius: 25
+            }
+        };
+
+        function applyPreset(preset) {
+            const config = presets[preset];
+            for (let key in config) {
+                params[key] = config[key];
+                const slider = document.getElementById(key);
+                const valueDisplay = document.getElementById(key + 'Value');
+                if (slider) {
+                    slider.value = config[key];
+                    valueDisplay.textContent = config[key].toFixed(key === 'maxForce' ? 2 : 1);
+                }
+            }
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            const btn = document.getElementById('pauseBtn');
+            btn.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+        }
+
+        function resetSimulation() {
+            applyPreset('flocking');
+            params.boidCount = 100;
+            document.getElementById('boidCount').value = 100;
+            document.getElementById('boidCountValue').textContent = '100';
+            adjustBoidCount(100);
+        }
+
+        // Initialize
+        ctx.fillStyle = '#0a0e27';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        initBoids();
+        setupControls();
+        animate();
+    </script>
+</body>
+</html>
