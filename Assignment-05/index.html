@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boid Mini Lab - Flocking Simulation</title>
+    <title>Boid Mini Lab - Advanced Flocking Simulation</title>
     <style>
         * {
             margin: 0;
@@ -38,16 +38,28 @@
         }
 
         .canvas-wrapper {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
         }
 
         canvas {
             display: block;
             width: 100%;
             background: #0a0e27;
+            cursor: crosshair;
+        }
+
+        .canvas-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.85em;
+            color: #6c757d;
+            text-align: center;
         }
 
         .controls {
@@ -126,6 +138,19 @@
             font-size: 0.95em;
         }
 
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
         .presets {
             display: flex;
             gap: 10px;
@@ -160,10 +185,12 @@
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
         .action-btn {
             flex: 1;
+            min-width: 100px;
             padding: 12px 20px;
             border: 2px solid #667eea;
             border-radius: 8px;
@@ -172,10 +199,15 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 1em;
+            font-size: 0.95em;
         }
 
         .action-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .action-btn.active {
             background: #667eea;
             color: white;
         }
@@ -235,6 +267,10 @@
             <canvas id="canvas" width="1140" height="600"></canvas>
         </div>
 
+        <div class="canvas-info">
+            <strong>Click canvas</strong> to place/remove obstacles • <strong>Shift+Click</strong> to set Leader • <strong>Ctrl+Click</strong> to set Predator
+        </div>
+
         <div class="presets">
             <button class="preset-btn" onclick="applyPreset('schooling')">🐟 Schooling</button>
             <button class="preset-btn" onclick="applyPreset('flocking')">🦅 Flocking</button>
@@ -245,6 +281,8 @@
         <div class="action-buttons">
             <button class="action-btn" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
             <button class="action-btn" onclick="resetSimulation()">↺ Reset</button>
+            <button class="action-btn" onclick="clearObstacles()">🗑 Clear Obstacles</button>
+            <button class="action-btn" onclick="clearSpecial()">✖ Clear Leader/Predator</button>
         </div>
 
         <div class="controls">
@@ -311,6 +349,27 @@
                     <span class="value-display" id="separationRadiusValue">25</span>
                 </div>
             </div>
+
+            <div class="control-group">
+                <label>Perception Cone</label>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="perceptionCone" onchange="togglePerceptionCone()">
+                    <label for="perceptionCone" style="margin: 0;">Enable Forward FOV</label>
+                </div>
+                <div class="slider-container" style="margin-top: 10px;">
+                    <label style="min-width: 60px; margin: 0;">FOV:</label>
+                    <input type="range" id="fovAngle" min="60" max="270" value="120" step="15" disabled>
+                    <span class="value-display" id="fovAngleValue">120°</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="obstacleRadius">Obstacle Size</label>
+                <div class="slider-container">
+                    <input type="range" id="obstacleRadius" min="10" max="60" value="30" step="5">
+                    <span class="value-display" id="obstacleRadiusValue">30</span>
+                </div>
+            </div>
         </div>
 
         <div class="stats">
@@ -325,6 +384,10 @@
             <div class="stat-item">
                 <div class="stat-label">Avg Speed</div>
                 <div class="stat-value" id="statAvgSpeed">0.0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Obstacles</div>
+                <div class="stat-value" id="statObstacles">0</div>
             </div>
         </div>
     </div>
@@ -342,10 +405,16 @@
             maxSpeed: 4,
             maxForce: 0.2,
             visionRadius: 50,
-            separationRadius: 25
+            separationRadius: 25,
+            perceptionCone: false,
+            fovAngle: 120,
+            obstacleRadius: 30
         };
 
         let boids = [];
+        let obstacles = [];
+        let leader = null;
+        let predator = null;
         let isPaused = false;
         let lastTime = performance.now();
         let fps = 60;
@@ -354,7 +423,7 @@
 
         // Boid class
         class Boid {
-            constructor(x, y) {
+            constructor(x, y, isSpecial = false) {
                 this.position = { x: x || Math.random() * canvas.width, y: y || Math.random() * canvas.height };
                 this.velocity = {
                     x: Math.random() * 2 - 1,
@@ -362,6 +431,7 @@
                 };
                 this.acceleration = { x: 0, y: 0 };
                 this.hue = 200 + Math.random() * 40;
+                this.isSpecial = isSpecial;
             }
 
             edges() {
@@ -372,13 +442,32 @@
                 else if (this.position.y < 0) this.position.y = canvas.height;
             }
 
+            isInFOV(other) {
+                if (!params.perceptionCone) return true;
+
+                const toOther = {
+                    x: other.position.x - this.position.x,
+                    y: other.position.y - this.position.y
+                };
+
+                const velAngle = Math.atan2(this.velocity.y, this.velocity.x);
+                const toOtherAngle = Math.atan2(toOther.y, toOther.x);
+
+                let angleDiff = toOtherAngle - velAngle;
+                while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                const fovRad = (params.fovAngle * Math.PI) / 180;
+                return Math.abs(angleDiff) < fovRad / 2;
+            }
+
             align(boids) {
                 let steering = { x: 0, y: 0 };
                 let total = 0;
 
                 for (let other of boids) {
                     let d = this.distance(this.position, other.position);
-                    if (other !== this && d < params.visionRadius) {
+                    if (other !== this && d < params.visionRadius && this.isInFOV(other)) {
                         steering.x += other.velocity.x;
                         steering.y += other.velocity.y;
                         total++;
@@ -403,7 +492,7 @@
 
                 for (let other of boids) {
                     let d = this.distance(this.position, other.position);
-                    if (other !== this && d < params.visionRadius) {
+                    if (other !== this && d < params.visionRadius && this.isInFOV(other)) {
                         steering.x += other.position.x;
                         steering.y += other.position.y;
                         total++;
@@ -430,7 +519,7 @@
 
                 for (let other of boids) {
                     let d = this.distance(this.position, other.position);
-                    if (other !== this && d < params.separationRadius) {
+                    if (other !== this && d < params.separationRadius && this.isInFOV(other)) {
                         let diff = {
                             x: this.position.x - other.position.x,
                             y: this.position.y - other.position.y
@@ -455,10 +544,97 @@
                 return steering;
             }
 
+            avoidObstacles() {
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+
+                for (let obstacle of obstacles) {
+                    let d = this.distance(this.position, obstacle);
+                    const detectRadius = params.visionRadius + obstacle.radius;
+
+                    if (d < detectRadius) {
+                        let diff = {
+                            x: this.position.x - obstacle.x,
+                            y: this.position.y - obstacle.y
+                        };
+                        diff.x /= d * d;
+                        diff.y /= d * d;
+                        steering.x += diff.x;
+                        steering.y += diff.y;
+                        total++;
+                    }
+                }
+
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    steering = this.setMag(steering, params.maxSpeed);
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    steering = this.limit(steering, params.maxForce);
+                    // Stronger avoidance
+                    steering.x *= 3;
+                    steering.y *= 3;
+                }
+
+                return steering;
+            }
+
+            followLeader() {
+                if (!leader) return { x: 0, y: 0 };
+
+                let d = this.distance(this.position, leader.position);
+                if (d < params.visionRadius * 2) {
+                    let desired = {
+                        x: leader.position.x - this.position.x,
+                        y: leader.position.y - this.position.y
+                    };
+                    desired = this.setMag(desired, params.maxSpeed);
+                    let steering = {
+                        x: desired.x - this.velocity.x,
+                        y: desired.y - this.velocity.y
+                    };
+                    return this.limit(steering, params.maxForce);
+                }
+
+                return { x: 0, y: 0 };
+            }
+
+            fleePredator() {
+                if (!predator) return { x: 0, y: 0 };
+
+                let d = this.distance(this.position, predator.position);
+                const fleeRadius = params.visionRadius * 2.5;
+
+                if (d < fleeRadius) {
+                    let desired = {
+                        x: this.position.x - predator.position.x,
+                        y: this.position.y - predator.position.y
+                    };
+                    desired = this.setMag(desired, params.maxSpeed);
+                    let steering = {
+                        x: desired.x - this.velocity.x,
+                        y: desired.y - this.velocity.y
+                    };
+                    steering = this.limit(steering, params.maxForce);
+                    // Stronger flee response
+                    steering.x *= 2.5;
+                    steering.y *= 2.5;
+                    return steering;
+                }
+
+                return { x: 0, y: 0 };
+            }
+
             flock(boids) {
+                if (this.isSpecial) return;
+
                 let alignment = this.align(boids);
                 let cohesion = this.cohesion(boids);
                 let separation = this.separation(boids);
+                let avoidance = this.avoidObstacles();
+                let follow = this.followLeader();
+                let flee = this.fleePredator();
 
                 this.acceleration.x += alignment.x * params.alignment;
                 this.acceleration.y += alignment.y * params.alignment;
@@ -468,6 +644,15 @@
 
                 this.acceleration.x += separation.x * params.separation;
                 this.acceleration.y += separation.y * params.separation;
+
+                this.acceleration.x += avoidance.x;
+                this.acceleration.y += avoidance.y;
+
+                this.acceleration.x += follow.x * 1.5;
+                this.acceleration.y += follow.y * 1.5;
+
+                this.acceleration.x += flee.x;
+                this.acceleration.y += flee.y;
             }
 
             update() {
@@ -489,13 +674,35 @@
                 ctx.translate(this.position.x, this.position.y);
                 ctx.rotate(angle);
 
-                ctx.fillStyle = `hsl(${this.hue}, 70%, 60%)`;
+                // Different colors for leader/predator
+                let color;
+                if (this === leader) {
+                    color = '#22ff22';
+                } else if (this === predator) {
+                    color = '#ff2222';
+                } else {
+                    color = `hsl(${this.hue}, 70%, 60%)`;
+                }
+
+                ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.moveTo(8, 0);
-                ctx.lineTo(-8, -4);
-                ctx.lineTo(-8, 4);
+                const size = (this === leader || this === predator) ? 12 : 8;
+                ctx.moveTo(size, 0);
+                ctx.lineTo(-size, -size/2);
+                ctx.lineTo(-size, size/2);
                 ctx.closePath();
                 ctx.fill();
+
+                // Draw perception cone if enabled
+                if (params.perceptionCone && this !== leader && this !== predator) {
+                    ctx.fillStyle = 'rgba(200, 200, 255, 0.1)';
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    const fovRad = (params.fovAngle * Math.PI) / 180;
+                    ctx.arc(0, 0, params.visionRadius, -fovRad/2, fovRad/2);
+                    ctx.closePath();
+                    ctx.fill();
+                }
 
                 ctx.restore();
             }
@@ -543,9 +750,93 @@
                     boids.push(new Boid());
                 }
             } else if (newCount < boids.length) {
-                boids.splice(newCount);
+                // Remove boids but keep leader/predator if they exist
+                while (boids.length > newCount) {
+                    const toRemove = boids.find(b => b !== leader && b !== predator);
+                    if (toRemove) {
+                        const idx = boids.indexOf(toRemove);
+                        boids.splice(idx, 1);
+                    } else break;
+                }
             }
             updateStats();
+        }
+
+        // Canvas click handler
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            if (e.shiftKey) {
+                // Set leader
+                let closest = null;
+                let minDist = Infinity;
+                for (let boid of boids) {
+                    const d = Math.hypot(boid.position.x - x, boid.position.y - y);
+                    if (d < minDist && d < 50) {
+                        minDist = d;
+                        closest = boid;
+                    }
+                }
+                if (closest) {
+                    if (leader) leader.isSpecial = false;
+                    leader = closest;
+                    leader.isSpecial = true;
+                    if (predator === leader) predator = null;
+                }
+            } else if (e.ctrlKey || e.metaKey) {
+                // Set predator
+                let closest = null;
+                let minDist = Infinity;
+                for (let boid of boids) {
+                    const d = Math.hypot(boid.position.x - x, boid.position.y - y);
+                    if (d < minDist && d < 50) {
+                        minDist = d;
+                        closest = boid;
+                    }
+                }
+                if (closest) {
+                    if (predator) predator.isSpecial = false;
+                    predator = closest;
+                    predator.isSpecial = true;
+                    if (leader === predator) leader = null;
+                }
+            } else {
+                // Toggle obstacle
+                let clickedObstacle = null;
+                for (let i = 0; i < obstacles.length; i++) {
+                    const d = Math.hypot(obstacles[i].x - x, obstacles[i].y - y);
+                    if (d < obstacles[i].radius) {
+                        clickedObstacle = i;
+                        break;
+                    }
+                }
+
+                if (clickedObstacle !== null) {
+                    obstacles.splice(clickedObstacle, 1);
+                } else {
+                    obstacles.push({ x, y, radius: params.obstacleRadius });
+                }
+                updateStats();
+            }
+        });
+
+        function clearObstacles() {
+            obstacles = [];
+            updateStats();
+        }
+
+        function clearSpecial() {
+            if (leader) leader.isSpecial = false;
+            if (predator) predator.isSpecial = false;
+            leader = null;
+            predator = null;
+        }
+
+        function togglePerceptionCone() {
+            params.perceptionCone = document.getElementById('perceptionCone').checked;
+            document.getElementById('fovAngle').disabled = !params.perceptionCone;
         }
 
         // Animation loop
@@ -554,6 +845,17 @@
                 // Motion blur effect
                 ctx.fillStyle = 'rgba(10, 14, 39, 0.15)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw obstacles
+                for (let obstacle of obstacles) {
+                    ctx.fillStyle = 'rgba(255, 100, 100, 0.3)';
+                    ctx.strokeStyle = 'rgba(255, 100, 100, 0.6)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(obstacle.x, obstacle.y, obstacle.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                }
 
                 for (let boid of boids) {
                     boid.edges();
@@ -585,6 +887,7 @@
         function updateStats() {
             document.getElementById('statBoidCount').textContent = boids.length;
             document.getElementById('statFPS').textContent = fps;
+            document.getElementById('statObstacles').textContent = obstacles.length;
 
             let totalSpeed = 0;
             for (let boid of boids) {
@@ -596,7 +899,7 @@
 
         // Setup controls
         function setupControls() {
-            const controls = ['boidCount', 'separation', 'alignment', 'cohesion', 'maxSpeed', 'maxForce', 'visionRadius', 'separationRadius'];
+            const controls = ['boidCount', 'separation', 'alignment', 'cohesion', 'maxSpeed', 'maxForce', 'visionRadius', 'separationRadius', 'fovAngle', 'obstacleRadius'];
 
             controls.forEach(control => {
                 const slider = document.getElementById(control);
@@ -609,6 +912,9 @@
                         params.boidCount = value;
                         adjustBoidCount(value);
                         valueDisplay.textContent = value;
+                    } else if (control === 'fovAngle') {
+                        params.fovAngle = value;
+                        valueDisplay.textContent = value + '°';
                     } else {
                         params[control] = value;
                         valueDisplay.textContent = value.toFixed(2);
@@ -682,6 +988,8 @@
             document.getElementById('boidCount').value = 100;
             document.getElementById('boidCountValue').textContent = '100';
             adjustBoidCount(100);
+            clearObstacles();
+            clearSpecial();
         }
 
         // Initialize
