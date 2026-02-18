@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Color Patisserie</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Serif+Display:ital@0;1&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+/* ───── CSS Custom Properties ───── */
+:root {
+  --cream: #FDF6EC;
+  --butter: #F5E6C8;
+  --caramel: #C8934A;
+  --dark-caramel: #8B5E2A;
+  --chocolate: #3D1F0A;
+  --muted: #8A6D4E;
+  --border: #E0CBA8;
+}
+
+/* ───── Reset & Base ───── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Lato', sans-serif;
+  background: var(--cream);
+  color: var(--chocolate);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ───── Background Warmth ───── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(200,147,74,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 50%, rgba(139,94,42,0.06) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ───── Paper Grain Overlay ───── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
+}
+
+/* ───── Header ───── */
+.header {
+  text-align: center;
+  padding: 40px 20px 30px;
+  border-bottom: 2px dashed var(--border);
+  position: relative;
+  z-index: 1;
+}
+
+.header-tagline {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.header-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: var(--chocolate);
+  line-height: 1.1;
+}
+
+.header-ornament {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: var(--caramel);
+  letter-spacing: 8px;
+}
+
+/* ───── Vision Mode Banner ───── */
+.vision-banner {
+  display: none;
+  background: var(--caramel);
+  color: white;
+  text-align: center;
+  padding: 8px 20px;
+  font-family: 'Lato', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  position: relative;
+  z-index: 1;
+}
+
+.vision-banner.active { display: block; }
+
+/* ───── Main Grid ───── */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 30px;
+  position: relative;
+  z-index: 1;
+  transition: filter 0.3s ease;
+}
+
+.main-grid::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 40px;
+  bottom: 40px;
+  width: 1px;
+  background: var(--border);
+}
+
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+    padding: 30px 20px;
+  }
+  .main-grid::after { display: none; }
+}
+
+.column { padding: 0 30px; }
+
+.chapter-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  color: var(--chocolate);
+  margin-bottom: 4px;
+}
+
+.chapter-subtitle {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+
+/* ───── Mixing Bowl ───── */
+.bowl-container {
+  position: relative;
+  width: 220px;
+  height: 140px;
+  margin: 0 auto 30px;
+}
+
+.bowl {
+  position: relative;
+  width: 220px;
+  height: 120px;
+  background: var(--chocolate);
+  border-radius: 0 0 110px 110px;
+  overflow: hidden;
+  border: 3px solid var(--dark-caramel);
+  border-top: none;
+}
+
+.bowl-rim {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  height: 14px;
+  background: var(--chocolate);
+  border-radius: 8px 8px 0 0;
+  border: 3px solid var(--dark-caramel);
+  z-index: 3;
+}
+
+.bowl-liquid {
+  position: absolute;
+  inset: 12px 4px 4px 4px;
+  border-radius: 0 0 106px 106px;
+  background-color: rgb(128, 128, 128);
+  transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.swirl-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+}
+
+.swirl-1 {
+  background: conic-gradient(from 0deg, rgba(255,255,255,0.3), transparent, rgba(255,255,255,0.2), transparent);
+  animation: swirl-cw 4s linear infinite;
+}
+
+.swirl-2 {
+  background: conic-gradient(from 180deg, rgba(0,0,0,0.15), transparent, rgba(255,255,255,0.15), transparent);
+  animation: swirl-ccw 6s linear infinite;
+}
+
+@keyframes swirl-cw { to { transform: rotate(360deg); } }
+@keyframes swirl-ccw { to { transform: rotate(-360deg); } }
+
+/* ───── Spoon ───── */
+.spoon {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform-origin: bottom center;
+  animation: stir 3s ease-in-out infinite;
+  z-index: 4;
+}
+
+.spoon-handle {
+  width: 8px;
+  height: 80px;
+  background: linear-gradient(to bottom, #D4A056, #B8863A);
+  border-radius: 4px;
+  margin-left: -4px;
+}
+
+.spoon-head {
+  width: 26px;
+  height: 16px;
+  background: linear-gradient(to bottom, #B8863A, #9A7030);
+  border-radius: 50%;
+  margin-left: -13px;
+  margin-top: -2px;
+}
+
+@keyframes stir {
+  0%, 100% { transform: rotate(-15deg); }
+  50% { transform: rotate(15deg); }
+}
+
+/* ───── Sliders ───── */
+.slider-group { margin-bottom: 18px; }
+
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.slider-name {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--chocolate);
+}
+
+.slider-badge {
+  background: var(--butter);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-family: 'Lato', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--chocolate);
+  min-width: 36px;
+  text-align: center;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--chocolate);
+  border: 3px solid var(--cream);
+  box-shadow: 0 0 0 2px var(--caramel);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 3px var(--caramel), 0 0 12px rgba(200,147,74,0.5);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--chocolate);
+  border: 3px solid var(--cream);
+  box-shadow: 0 0 0 2px var(--caramel);
+  cursor: pointer;
+}
+
+/* ───── Divider ───── */
+.section-divider {
+  border: none;
+  border-top: 1px dashed var(--border);
+  margin: 24px 0;
+}
+
+/* ───── Plate Preview ───── */
+.plate-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.plate {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 6px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.plate-color {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.plate-gloss {
+  position: absolute;
+  top: 8px;
+  left: 15%;
+  width: 50%;
+  height: 30%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, transparent 100%);
+  border-radius: 50%;
+}
+
+/* ───── Hex / RGB Info ───── */
+.color-info {
+  text-align: center;
+}
+
+.hex-display {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--chocolate);
+  margin-bottom: 4px;
+}
+
+.rgb-display {
+  font-family: 'Lato', sans-serif;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.copy-btn {
+  font-family: 'Lato', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 8px 24px;
+  background: var(--chocolate);
+  color: var(--cream);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.copy-btn:hover { background: var(--dark-caramel); }
+
+/* ───── Colour Wheel ───── */
+.wheel-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 20px;
+}
+
+#colorWheel {
+  border-radius: 50%;
+  cursor: crosshair;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.wheel-cursor {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0,0,0,0.4);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+}
+
+/* ───── Lightness Slider ───── */
+.lightness-group {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.lightness-group .slider-name {
+  display: block;
+  margin-bottom: 6px;
+}
+
+#lightnessSlider {
+  background: linear-gradient(to right, #000, #888, #fff);
+}
+
+/* ───── Harmony Tabs ───── */
+.harmony-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.harmony-tab {
+  font-family: 'Lato', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 6px 16px;
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.harmony-tab.active {
+  background: var(--caramel);
+  border-color: var(--caramel);
+  color: white;
+}
+
+.harmony-tab:hover:not(.active) {
+  border-color: var(--caramel);
+  color: var(--caramel);
+}
+
+/* ───── Recipe Card ───── */
+.recipe-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.recipe-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  color: var(--chocolate);
+  margin-bottom: 4px;
+}
+
+.recipe-description {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.swatch-grid {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.swatch-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.swatch-item:hover { transform: scale(1.05); }
+
+.swatch-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.swatch-circle.base-swatch {
+  border-color: var(--caramel);
+  box-shadow: 0 0 0 3px rgba(200,147,74,0.3), 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.swatch-label {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.swatch-hex {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--chocolate);
+}
+
+/* ───── Vision Simulator Panel ───── */
+.vision-toggle {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  writing-mode: vertical-rl;
+  background: var(--chocolate);
+  color: var(--cream);
+  border: none;
+  padding: 14px 10px;
+  font-family: 'Lato', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-radius: 8px 0 0 8px;
+  z-index: 1001;
+  letter-spacing: 1px;
+  transition: background 0.2s ease;
+}
+
+.vision-toggle:hover { background: var(--dark-caramel); }
+
+.vision-panel {
+  position: fixed;
+  top: 0;
+  right: -300px;
+  width: 280px;
+  height: 100vh;
+  background: white;
+  border-left: 2px solid var(--border);
+  box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+  z-index: 1000;
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.vision-panel.open { right: 0; }
+
+.panel-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem;
+  color: var(--chocolate);
+}
+
+.panel-subtitle {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.vision-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.vision-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border: 2px solid transparent;
+  margin-bottom: 4px;
+}
+
+.vision-option:hover { background: var(--butter); }
+
+.vision-option.selected {
+  background: var(--butter);
+  border-color: var(--caramel);
+}
+
+.vision-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--caramel);
+  flex-shrink: 0;
+}
+
+.vision-option-info { flex: 1; }
+
+.vision-option-name {
+  font-family: 'Lato', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--chocolate);
+}
+
+.vision-option-desc {
+  font-family: 'Lato', sans-serif;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+/* ───── Panel Footer Preview ───── */
+.panel-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--butter);
+}
+
+.preview-label {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.preview-swatches {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.preview-swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+}
+
+.preview-arrow {
+  font-size: 1.2rem;
+  color: var(--muted);
+}
+
+.preview-hex {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--chocolate);
+  margin-top: 6px;
+}
+
+/* ───── Toast ───── */
+.toast {
+  position: fixed;
+  bottom: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--chocolate);
+  color: var(--cream);
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-family: 'Lato', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  z-index: 10000;
+  transition: bottom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.toast.show { bottom: 30px; }
+</style>
+</head>
+<body>
+
+<!-- ───── SVG Filters for Vision Simulation ───── -->
+<svg style="position:absolute;width:0;height:0">
+  <defs>
+    <filter id="protanopia">
+      <feColorMatrix type="matrix" values="
+        0.567, 0.433, 0,     0, 0
+        0.558, 0.442, 0,     0, 0
+        0,     0.242, 0.758, 0, 0
+        0,     0,     0,     1, 0"/>
+    </filter>
+    <filter id="protanomaly">
+      <feColorMatrix type="matrix" values="
+        0.817, 0.183, 0,     0, 0
+        0.333, 0.667, 0,     0, 0
+        0,     0.125, 0.875, 0, 0
+        0,     0,     0,     1, 0"/>
+    </filter>
+    <filter id="deuteranopia">
+      <feColorMatrix type="matrix" values="
+        0.625, 0.375, 0,   0, 0
+        0.700, 0.300, 0,   0, 0
+        0,     0.300, 0.700, 0, 0
+        0,     0,     0,   1, 0"/>
+    </filter>
+    <filter id="deuteranomaly">
+      <feColorMatrix type="matrix" values="
+        0.800, 0.200, 0,     0, 0
+        0.258, 0.742, 0,     0, 0
+        0,     0.142, 0.858, 0, 0
+        0,     0,     0,     1, 0"/>
+    </filter>
+    <filter id="tritanopia">
+      <feColorMatrix type="matrix" values="
+        0.950, 0.050, 0,     0, 0
+        0,     0.433, 0.567, 0, 0
+        0,     0.475, 0.525, 0, 0
+        0,     0,     0,     1, 0"/>
+    </filter>
+    <filter id="achromatopsia">
+      <feColorMatrix type="matrix" values="
+        0.299, 0.587, 0.114, 0, 0
+        0.299, 0.587, 0.114, 0, 0
+        0.299, 0.587, 0.114, 0, 0
+        0,     0,     0,     1, 0"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- ───── Header ───── -->
+<header class="header">
+  <div class="header-tagline">A Colour Studio for the Discerning Baker</div>
+  <h1 class="header-title">The Color Patisserie</h1>
+  <div class="header-ornament">&#10022; &#10022; &#10022;</div>
+</header>
+
+<!-- ───── Vision Mode Banner ───── -->
+<div class="vision-banner" id="visionBanner"></div>
+
+<!-- ───── Main Grid ───── -->
+<main class="main-grid" id="mainGrid">
+
+  <!-- ───── Left Column: The Mixing Bowl ───── -->
+  <section class="column">
+    <h2 class="chapter-title">Chapter I: The Mixing Bowl</h2>
+    <p class="chapter-subtitle">Blend your colours with care</p>
+
+    <!-- Bowl -->
+    <div class="bowl-container">
+      <div class="bowl">
+        <div class="bowl-rim"></div>
+        <div class="bowl-liquid" id="bowlLiquid">
+          <div class="swirl-layer swirl-1"></div>
+          <div class="swirl-layer swirl-2"></div>
+        </div>
+      </div>
+      <div class="spoon">
+        <div class="spoon-handle"></div>
+        <div class="spoon-head"></div>
+      </div>
+    </div>
+
+    <!-- Sliders -->
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="slider-name">Strawberry Extract (R)</span>
+        <span class="slider-badge" id="redBadge">128</span>
+      </div>
+      <input type="range" id="redSlider" min="0" max="255" value="128">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="slider-name">Matcha Essence (G)</span>
+        <span class="slider-badge" id="greenBadge">128</span>
+      </div>
+      <input type="range" id="greenSlider" min="0" max="255" value="128">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="slider-name">Blueberry Coulis (B)</span>
+        <span class="slider-badge" id="blueBadge">128</span>
+      </div>
+      <input type="range" id="blueSlider" min="0" max="255" value="128">
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- Plate Preview -->
+    <div class="plate-container">
+      <div class="plate">
+        <div class="plate-color" id="plateColor"></div>
+        <div class="plate-gloss"></div>
+      </div>
+      <div class="color-info">
+        <div class="hex-display" id="hexDisplay">#808080</div>
+        <div class="rgb-display" id="rgbDisplay">rgb(128, 128, 128)</div>
+        <button class="copy-btn" id="copyHexBtn">Copy Hex</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── Right Column: The Recipe Book ───── -->
+  <section class="column">
+    <h2 class="chapter-title">Chapter II: The Recipe Book</h2>
+    <p class="chapter-subtitle">Discover harmonious palettes</p>
+
+    <!-- Colour Wheel -->
+    <div class="wheel-container" id="wheelContainer">
+      <canvas id="colorWheel" width="200" height="200"></canvas>
+      <div class="wheel-cursor" id="wheelCursor"></div>
+    </div>
+
+    <!-- Lightness Slider -->
+    <div class="lightness-group">
+      <span class="slider-name">Lightness</span>
+      <input type="range" id="lightnessSlider" min="0" max="100" value="50">
+    </div>
+
+    <!-- Harmony Tabs -->
+    <div class="harmony-tabs">
+      <button class="harmony-tab active" data-mode="complementary">Complementary</button>
+      <button class="harmony-tab" data-mode="triadic">Triadic</button>
+      <button class="harmony-tab" data-mode="tetradic">Tetradic</button>
+    </div>
+
+    <!-- Recipe Card -->
+    <div class="recipe-card">
+      <div class="recipe-title" id="recipeTitle">Complementary Palette</div>
+      <div class="recipe-description" id="recipeDesc">Maximum contrast; ideal for accent pairings</div>
+      <div class="swatch-grid" id="swatchGrid"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ───── Vision Simulator ───── -->
+<button class="vision-toggle" id="visionToggle">&#128065; Vision</button>
+
+<aside class="vision-panel" id="visionPanel">
+  <div class="panel-header">
+    <div class="panel-title">Vision Simulator</div>
+    <div class="panel-subtitle">See colour through different eyes</div>
+  </div>
+
+  <div class="vision-list" id="visionList"></div>
+
+  <div class="panel-footer">
+    <div class="preview-label">Mixer Colour Preview</div>
+    <div class="preview-swatches">
+      <div class="preview-swatch" id="previewOriginal"></div>
+      <span class="preview-arrow">&rarr;</span>
+      <div class="preview-swatch" id="previewSimulated"></div>
+    </div>
+    <div class="preview-hex" id="previewHex">Simulated: #808080</div>
+  </div>
+</aside>
+
+<!-- ───── Toast ───── -->
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+// ═══════════════════════════════════════
+// State
+// ═══════════════════════════════════════
+let mixerR = 128, mixerG = 128, mixerB = 128;
+let wheelHue = 0, wheelSat = 100, lightness = 50;
+let harmonyMode = 'complementary';
+let activeVision = 'normal';
+
+// Vision types & their feColorMatrix values
+const VISION_TYPES = [
+  { id: 'normal', name: 'Normal Vision', desc: 'Full colour perception', matrix: null },
+  { id: 'protanopia', name: 'Protanopia', desc: 'Red-blind (~1% of males)', matrix: [0.567,0.433,0,0.558,0.442,0,0,0.242,0.758] },
+  { id: 'protanomaly', name: 'Protanomaly', desc: 'Red-weak (~1% of males)', matrix: [0.817,0.183,0,0.333,0.667,0,0,0.125,0.875] },
+  { id: 'deuteranopia', name: 'Deuteranopia', desc: 'Green-blind (~1% of males)', matrix: [0.625,0.375,0,0.700,0.300,0,0,0.300,0.700] },
+  { id: 'deuteranomaly', name: 'Deuteranomaly', desc: 'Green-weak (~5% of males)', matrix: [0.800,0.200,0,0.258,0.742,0,0,0.142,0.858] },
+  { id: 'tritanopia', name: 'Tritanopia', desc: 'Blue-blind (very rare)', matrix: [0.950,0.050,0,0,0.433,0.567,0,0.475,0.525] },
+  { id: 'achromatopsia', name: 'Achromatopsia', desc: 'Greyscale only (very rare)', matrix: [0.299,0.587,0.114,0.299,0.587,0.114,0.299,0.587,0.114] }
+];
+
+// Harmony descriptions
+const HARMONY_INFO = {
+  complementary: { title: 'Complementary Palette', desc: 'Maximum contrast; ideal for accent pairings' },
+  triadic: { title: 'Triadic Palette', desc: 'Evenly spaced; balanced and vibrant' },
+  tetradic: { title: 'Tetradic Palette', desc: 'Colour rectangle; rich and complex' }
+};
+
+// ═══════════════════════════════════════
+// DOM Refs
+// ═══════════════════════════════════════
+const $ = id => document.getElementById(id);
+const redSlider = $('redSlider'), greenSlider = $('greenSlider'), blueSlider = $('blueSlider');
+const redBadge = $('redBadge'), greenBadge = $('greenBadge'), blueBadge = $('blueBadge');
+const bowlLiquid = $('bowlLiquid'), plateColor = $('plateColor');
+const hexDisplay = $('hexDisplay'), rgbDisplay = $('rgbDisplay');
+const mainGrid = $('mainGrid'), visionBanner = $('visionBanner');
+const wheelCanvas = $('colorWheel'), wheelCursor = $('wheelCursor');
+const lightnessSlider = $('lightnessSlider');
+const swatchGrid = $('swatchGrid');
+const recipeTitle = $('recipeTitle'), recipeDesc = $('recipeDesc');
+const toast = $('toast');
+const previewOriginal = $('previewOriginal'), previewSimulated = $('previewSimulated'), previewHex = $('previewHex');
+
+// ═══════════════════════════════════════
+// Colour Utilities
+// ═══════════════════════════════════════
+function toHex(r, g, b) {
+  return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+function hsl2rgb(h, s, l) {
+  h /= 360; s /= 100; l /= 100;
+  let r, g, b;
+  if (s === 0) { r = g = b = l; }
+  else {
+    const hue2rgb = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1/6) return p + (q - p) * 6 * t; if (t < 1/2) return q; if (t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+function hsl2hex(h, s, l) {
+  l = Math.max(10, Math.min(90, l));
+  const [r, g, b] = hsl2rgb(h, s, l);
+  return toHex(r, g, b);
+}
+
+function simulateColor(r, g, b, matrix) {
+  if (!matrix) return [r, g, b];
+  const sr = matrix[0]*r + matrix[1]*g + matrix[2]*b;
+  const sg = matrix[3]*r + matrix[4]*g + matrix[5]*b;
+  const sb = matrix[6]*r + matrix[7]*g + matrix[8]*b;
+  return [Math.round(Math.min(255, Math.max(0, sr))), Math.round(Math.min(255, Math.max(0, sg))), Math.round(Math.min(255, Math.max(0, sb)))];
+}
+
+// ═══════════════════════════════════════
+// Toast
+// ═══════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  toast.textContent = msg || 'Copied!';
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('Copied ' + text));
+}
+
+// ═══════════════════════════════════════
+// Mixer
+// ═══════════════════════════════════════
+function updateSliderGradient(slider, channel) {
+  const val = +slider.value;
+  let colors;
+  if (channel === 'r') colors = [`rgb(0,${mixerG},${mixerB})`, `rgb(255,${mixerG},${mixerB})`];
+  else if (channel === 'g') colors = [`rgb(${mixerR},0,${mixerB})`, `rgb(${mixerR},255,${mixerB})`];
+  else colors = [`rgb(${mixerR},${mixerG},0)`, `rgb(${mixerR},${mixerG},255)`];
+  slider.style.background = `linear-gradient(to right, ${colors[0]}, ${colors[1]})`;
+}
+
+function updateMixer() {
+  mixerR = +redSlider.value; mixerG = +greenSlider.value; mixerB = +blueSlider.value;
+  redBadge.textContent = mixerR; greenBadge.textContent = mixerG; blueBadge.textContent = mixerB;
+
+  const color = `rgb(${mixerR},${mixerG},${mixerB})`;
+  bowlLiquid.style.backgroundColor = color;
+  plateColor.style.backgroundColor = color;
+
+  const hex = toHex(mixerR, mixerG, mixerB);
+  hexDisplay.textContent = hex;
+  rgbDisplay.textContent = `rgb(${mixerR}, ${mixerG}, ${mixerB})`;
+
+  updateSliderGradient(redSlider, 'r');
+  updateSliderGradient(greenSlider, 'g');
+  updateSliderGradient(blueSlider, 'b');
+
+  updateVisionPreview();
+}
+
+redSlider.addEventListener('input', updateMixer);
+greenSlider.addEventListener('input', updateMixer);
+blueSlider.addEventListener('input', updateMixer);
+$('copyHexBtn').addEventListener('click', () => copyToClipboard(hexDisplay.textContent));
+
+// ═══════════════════════════════════════
+// Colour Wheel
+// ═══════════════════════════════════════
+function drawWheel() {
+  const ctx = wheelCanvas.getContext('2d');
+  const cx = 100, cy = 100, radius = 100;
+  for (let angle = 0; angle < 360; angle++) {
+    const startRad = (angle - 0.5) * Math.PI / 180;
+    const endRad = (angle + 0.5) * Math.PI / 180;
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    const [r, g, b] = hsl2rgb(angle, 100, 50);
+    grad.addColorStop(0, '#fff');
+    grad.addColorStop(0.7, `rgb(${r},${g},${b})`);
+    const [dr, dg, db] = hsl2rgb(angle, 100, 20);
+    grad.addColorStop(1, `rgb(${dr},${dg},${db})`);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, startRad, endRad);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+  // Smooth centre
+  const centreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30);
+  centreGrad.addColorStop(0, 'rgba(255,255,255,0.6)');
+  centreGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = centreGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function wheelPick(x, y) {
+  const rect = wheelCanvas.getBoundingClientRect();
+  const px = x - rect.left, py = y - rect.top;
+  const cx = 100, cy = 100;
+  const dx = px - cx, dy = py - cy;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist > 100) return;
+
+  wheelHue = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+  wheelSat = Math.min(100, (dist / 100) * 100);
+
+  wheelCursor.style.left = px + 'px';
+  wheelCursor.style.top = py + 'px';
+  updatePalette();
+}
+
+let wheelDragging = false;
+wheelCanvas.addEventListener('mousedown', e => { wheelDragging = true; wheelPick(e.clientX, e.clientY); });
+window.addEventListener('mousemove', e => { if (wheelDragging) wheelPick(e.clientX, e.clientY); });
+window.addEventListener('mouseup', () => wheelDragging = false);
+wheelCanvas.addEventListener('touchstart', e => { e.preventDefault(); wheelDragging = true; wheelPick(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+window.addEventListener('touchmove', e => { if (wheelDragging) wheelPick(e.touches[0].clientX, e.touches[0].clientY); });
+window.addEventListener('touchend', () => wheelDragging = false);
+
+lightnessSlider.addEventListener('input', () => { lightness = +lightnessSlider.value; updatePalette(); });
+
+// ═══════════════════════════════════════
+// Harmony & Palette
+// ═══════════════════════════════════════
+function getHarmonyHues(base, mode) {
+  switch (mode) {
+    case 'complementary': return [base, (base + 180) % 360];
+    case 'triadic': return [base, (base + 120) % 360, (base + 240) % 360];
+    case 'tetradic': return [base, (base + 90) % 360, (base + 180) % 360, (base + 270) % 360];
+    default: return [base];
+  }
+}
+
+function getSwatchLabel(mode, index) {
+  if (index === 0) return 'Base';
+  if (mode === 'complementary') return 'Complement';
+  if (mode === 'triadic') return 'Triad ' + (index === 1 ? 'II' : 'III');
+  return ['', 'Quad II', 'Quad III', 'Quad IV'][index];
+}
+
+function updatePalette() {
+  const hues = getHarmonyHues(wheelHue, harmonyMode);
+  const info = HARMONY_INFO[harmonyMode];
+  recipeTitle.textContent = info.title;
+  recipeDesc.textContent = info.desc;
+
+  swatchGrid.innerHTML = '';
+  hues.forEach((h, i) => {
+    const hex = hsl2hex(h, wheelSat, lightness);
+    const item = document.createElement('div');
+    item.className = 'swatch-item';
+    item.innerHTML = `
+      <div class="swatch-circle${i === 0 ? ' base-swatch' : ''}" style="background:${hex}"></div>
+      <span class="swatch-label">${getSwatchLabel(harmonyMode, i)}</span>
+      <span class="swatch-hex">${hex}</span>`;
+    item.addEventListener('click', () => copyToClipboard(hex));
+    swatchGrid.appendChild(item);
+  });
+}
+
+document.querySelectorAll('.harmony-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.harmony-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    harmonyMode = tab.dataset.mode;
+    updatePalette();
+  });
+});
+
+// ═══════════════════════════════════════
+// Vision Simulator
+// ═══════════════════════════════════════
+function buildVisionList() {
+  const list = $('visionList');
+  VISION_TYPES.forEach(v => {
+    const opt = document.createElement('div');
+    opt.className = 'vision-option' + (v.id === 'normal' ? ' selected' : '');
+    opt.dataset.id = v.id;
+    opt.innerHTML = `<div class="vision-dot"></div><div class="vision-option-info"><div class="vision-option-name">${v.name}</div><div class="vision-option-desc">${v.desc}</div></div>`;
+    opt.addEventListener('click', () => selectVision(v.id));
+    list.appendChild(opt);
+  });
+}
+
+function selectVision(id) {
+  activeVision = id;
+  document.querySelectorAll('.vision-option').forEach(o => o.classList.toggle('selected', o.dataset.id === id));
+
+  if (id === 'normal') {
+    mainGrid.style.filter = '';
+    visionBanner.classList.remove('active');
+  } else {
+    mainGrid.style.filter = `url(#${id})`;
+    const v = VISION_TYPES.find(t => t.id === id);
+    visionBanner.textContent = 'Viewing as: ' + v.name;
+    visionBanner.classList.add('active');
+  }
+  updateVisionPreview();
+}
+
+function updateVisionPreview() {
+  const hex = toHex(mixerR, mixerG, mixerB);
+  previewOriginal.style.backgroundColor = `rgb(${mixerR},${mixerG},${mixerB})`;
+
+  const v = VISION_TYPES.find(t => t.id === activeVision);
+  const [sr, sg, sb] = simulateColor(mixerR, mixerG, mixerB, v.matrix);
+  const simHex = toHex(sr, sg, sb);
+  previewSimulated.style.backgroundColor = `rgb(${sr},${sg},${sb})`;
+  previewHex.textContent = 'Simulated: ' + simHex;
+}
+
+// Panel toggle
+$('visionToggle').addEventListener('click', () => {
+  $('visionPanel').classList.toggle('open');
+});
+
+// ═══════════════════════════════════════
+// Init
+// ═══════════════════════════════════════
+drawWheel();
+updateMixer();
+updatePalette();
+buildVisionList();
+updateVisionPreview();
+</script>
+</body>
+</html>
