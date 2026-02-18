@@ -283,6 +283,21 @@ input[type="range"] {
   cursor: pointer;
 }
 
+input[type="range"]::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  height: 10px;
+  border-radius: 5px;
+  background: inherit;
+}
+
+input[type="range"]::-moz-range-track {
+  height: 10px;
+  border-radius: 5px;
+  border: none;
+  background: inherit;
+}
+
+/* WebKit thumb */
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -293,6 +308,7 @@ input[type="range"]::-webkit-slider-thumb {
   border: 3px solid var(--cream);
   box-shadow: 0 0 0 2px var(--caramel);
   cursor: pointer;
+  margin-top: -6px;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -301,6 +317,7 @@ input[type="range"]:active::-webkit-slider-thumb {
   box-shadow: 0 0 0 3px var(--caramel), 0 0 12px rgba(200,147,74,0.5);
 }
 
+/* Firefox thumb */
 input[type="range"]::-moz-range-thumb {
   width: 22px;
   height: 22px;
@@ -787,7 +804,7 @@ input[type="range"]::-moz-range-thumb {
         <span class="slider-name">Strawberry Extract (R)</span>
         <span class="slider-badge" id="redBadge">128</span>
       </div>
-      <input type="range" id="redSlider" min="0" max="255" value="128">
+      <input type="range" id="redSlider" min="0" max="255" value="128" style="background:linear-gradient(to right,#000,#FF0000)">
     </div>
 
     <div class="slider-group">
@@ -795,7 +812,7 @@ input[type="range"]::-moz-range-thumb {
         <span class="slider-name">Matcha Essence (G)</span>
         <span class="slider-badge" id="greenBadge">128</span>
       </div>
-      <input type="range" id="greenSlider" min="0" max="255" value="128">
+      <input type="range" id="greenSlider" min="0" max="255" value="128" style="background:linear-gradient(to right,#000,#00FF00)">
     </div>
 
     <div class="slider-group">
@@ -803,7 +820,7 @@ input[type="range"]::-moz-range-thumb {
         <span class="slider-name">Blueberry Coulis (B)</span>
         <span class="slider-badge" id="blueBadge">128</span>
       </div>
-      <input type="range" id="blueSlider" min="0" max="255" value="128">
+      <input type="range" id="blueSlider" min="0" max="255" value="128" style="background:linear-gradient(to right,#000,#0000FF)">
     </div>
 
     <hr class="section-divider">
@@ -977,15 +994,6 @@ function copyToClipboard(text) {
 // ═══════════════════════════════════════
 // Mixer
 // ═══════════════════════════════════════
-function updateSliderGradient(slider, channel) {
-  const val = +slider.value;
-  let colors;
-  if (channel === 'r') colors = [`rgb(0,${mixerG},${mixerB})`, `rgb(255,${mixerG},${mixerB})`];
-  else if (channel === 'g') colors = [`rgb(${mixerR},0,${mixerB})`, `rgb(${mixerR},255,${mixerB})`];
-  else colors = [`rgb(${mixerR},${mixerG},0)`, `rgb(${mixerR},${mixerG},255)`];
-  slider.style.background = `linear-gradient(to right, ${colors[0]}, ${colors[1]})`;
-}
-
 function updateMixer() {
   mixerR = +redSlider.value; mixerG = +greenSlider.value; mixerB = +blueSlider.value;
   redBadge.textContent = mixerR; greenBadge.textContent = mixerG; blueBadge.textContent = mixerB;
@@ -997,10 +1005,6 @@ function updateMixer() {
   const hex = toHex(mixerR, mixerG, mixerB);
   hexDisplay.textContent = hex;
   rgbDisplay.textContent = `rgb(${mixerR}, ${mixerG}, ${mixerB})`;
-
-  updateSliderGradient(redSlider, 'r');
-  updateSliderGradient(greenSlider, 'g');
-  updateSliderGradient(blueSlider, 'b');
 
   updateVisionPreview();
 }
