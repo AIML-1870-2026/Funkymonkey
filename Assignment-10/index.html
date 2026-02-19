@@ -196,7 +196,6 @@
     }
 
     .pass { color: #4caf50; }
-    .warn { color: #ff9800; }
     .fail { color: #f44336; }
 
     .wcag-note {
@@ -375,12 +374,16 @@
   <div class="display-panel">
     <div class="text-display" id="text-display">
       <p class="sample-text" id="sample-text">
-        The quick brown fox jumps over the lazy dog.<br><br>
-        Pack my box with five dozen liquor jugs.<br>
-        Sphinx of black quartz, judge my vow.<br>
-        How vexingly quick daft zebras jump!<br>
-        The five boxing wizards jump quickly.<br>
-        Amazingly few discotheques provide jukeboxes.
+        Milo was a little monkey who lived high in the mango trees at the edge of the forest.<br><br>
+        Every morning he would wake to the smell of ripe fruit drifting up through the broad green leaves,
+        and every morning he would tell himself that today was the day he would reach the golden mango —
+        the one that hung at the very top of the tallest tree, glowing like a small sun.<br><br>
+        The climb was long and the branches grew thin near the top, swaying gently in the warm breeze.
+        Milo's fingers gripped the bark, his tail curled for balance, and one careful leap at a time,
+        he made his way upward.<br><br>
+        When his hand finally closed around the golden mango, the whole forest seemed to go quiet.
+        It was heavier than he expected, and sweeter than anything he had ever tasted.
+        He sat at the top of the world and ate it slowly, watching the sun move across the sky.
       </p>
     </div>
   </div>
@@ -505,7 +508,7 @@
       contrastEl.className = 'contrast-value pass';
       noteEl.textContent   = 'WCAG AA — pass';
     } else if (ratio >= 3) {
-      contrastEl.className = 'contrast-value warn';
+      contrastEl.className = 'contrast-value';
       noteEl.textContent   = 'Below WCAG AA (4.5:1)';
     } else {
       contrastEl.className = 'contrast-value fail';
