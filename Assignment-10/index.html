@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Readable — Color Readability Explorer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: 0.15em;
+      color: #fff;
+    }
+
+    header p {
+      margin: 0.25rem 0 0;
+      font-size: 0.75rem;
+      color: #666;
+      letter-spacing: 0.05em;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 1.5rem;
+      padding: 1.5rem;
+    }
+
+    /* ── Cards ── */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .card {
+      background: #181818;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      padding: 1rem;
+    }
+
+    .card h2 {
+      margin: 0 0 0.75rem;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: #555;
+    }
+
+    /* ── Color channel rows ── */
+    .channel-row {
+      display: grid;
+      grid-template-columns: 14px 1fr 54px;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .ch-label {
+      font-size: 0.7rem;
+      font-weight: bold;
+      color: #888;
+      text-align: center;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 5px;
+      border-radius: 3px;
+      background: #333;
+      cursor: pointer;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4a9eff;
+      cursor: pointer;
+    }
+
+    input[type="range"]:disabled::-webkit-slider-thumb {
+      background: #444;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 3px;
+      color: #ddd;
+      font-family: inherit;
+      font-size: 0.78rem;
+      padding: 3px 5px;
+      text-align: right;
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #4a9eff;
+    }
+
+    input[type="number"]:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    input[type="range"]:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .swatch {
+      width: 100%;
+      height: 28px;
+      border-radius: 4px;
+      border: 1px solid #333;
+      margin-top: 0.6rem;
+      transition: background-color 0.05s;
+    }
+
+    /* ── Size row ── */
+    .size-row {
+      display: grid;
+      grid-template-columns: 1fr 54px;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ── Vision radios ── */
+    .vision-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .vision-options label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+      cursor: pointer;
+      color: #ccc;
+    }
+
+    .vision-options input[type="radio"] {
+      accent-color: #4a9eff;
+      cursor: pointer;
+    }
+
+    .vision-badge {
+      font-size: 0.65rem;
+      color: #555;
+      margin-left: 0.25rem;
+    }
+
+    /* ── Stats card ── */
+    .stat-block {
+      margin-bottom: 0.75rem;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #555;
+      margin-bottom: 0.25rem;
+    }
+
+    .contrast-value {
+      font-size: 2rem;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+
+    .pass { color: #4caf50; }
+    .warn { color: #ff9800; }
+    .fail { color: #f44336; }
+
+    .wcag-note {
+      font-size: 0.7rem;
+      color: #555;
+      margin-top: 0.2rem;
+    }
+
+    .lum-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: #666;
+      margin-bottom: 0.3rem;
+    }
+
+    .lum-row span:last-child {
+      color: #bbb;
+      font-weight: bold;
+    }
+
+    /* ── Display panel ── */
+    .display-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-height: calc(100vh - 5rem);
+    }
+
+    .text-display {
+      flex: 1;
+      border-radius: 6px;
+      border: 1px solid #2a2a2a;
+      padding: 3rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      transition: background-color 0.05s, color 0.05s;
+    }
+
+    .sample-text {
+      max-width: 60ch;
+      line-height: 1.7;
+      margin: 0;
+      font-family: 'Courier New', Courier, monospace;
+      transition: font-size 0.05s;
+    }
+
+    /* ── Disabled group ── */
+    .ctrl-group.disabled input[type="range"],
+    .ctrl-group.disabled input[type="number"] {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Readable</h1>
+  <p>Explore color readability and accessibility</p>
+</header>
+
+<div class="app">
+
+  <!-- ── Left: Controls ── -->
+  <div class="controls">
+
+    <!-- Background Color -->
+    <div class="card">
+      <h2>Background Color</h2>
+      <div class="ctrl-group" id="bg-group">
+        <div class="channel-row">
+          <span class="ch-label">R</span>
+          <input type="range" min="0" max="255" value="30" id="bg-r-s">
+          <input type="number" min="0" max="255" value="30" id="bg-r-n">
+        </div>
+        <div class="channel-row">
+          <span class="ch-label">G</span>
+          <input type="range" min="0" max="255" value="30" id="bg-g-s">
+          <input type="number" min="0" max="255" value="30" id="bg-g-n">
+        </div>
+        <div class="channel-row">
+          <span class="ch-label">B</span>
+          <input type="range" min="0" max="255" value="30" id="bg-b-s">
+          <input type="number" min="0" max="255" value="30" id="bg-b-n">
+        </div>
+        <div class="swatch" id="bg-swatch"></div>
+      </div>
+    </div>
+
+    <!-- Text Color -->
+    <div class="card">
+      <h2>Text Color</h2>
+      <div class="ctrl-group" id="txt-group">
+        <div class="channel-row">
+          <span class="ch-label">R</span>
+          <input type="range" min="0" max="255" value="220" id="txt-r-s">
+          <input type="number" min="0" max="255" value="220" id="txt-r-n">
+        </div>
+        <div class="channel-row">
+          <span class="ch-label">G</span>
+          <input type="range" min="0" max="255" value="220" id="txt-g-s">
+          <input type="number" min="0" max="255" value="220" id="txt-g-n">
+        </div>
+        <div class="channel-row">
+          <span class="ch-label">B</span>
+          <input type="range" min="0" max="255" value="220" id="txt-b-s">
+          <input type="number" min="0" max="255" value="220" id="txt-b-n">
+        </div>
+        <div class="swatch" id="txt-swatch"></div>
+      </div>
+    </div>
+
+    <!-- Text Size -->
+    <div class="card">
+      <h2>Text Size</h2>
+      <div class="ctrl-group" id="size-group">
+        <div class="size-row">
+          <input type="range" min="8" max="72" value="18" id="size-s">
+          <input type="number" min="8" max="72" value="18" id="size-n">
+        </div>
+      </div>
+    </div>
+
+    <!-- Vision Simulation -->
+    <div class="card">
+      <h2>Vision Simulation</h2>
+      <div class="vision-options">
+        <label>
+          <input type="radio" name="vision" value="normal" checked>
+          Normal
+        </label>
+        <label>
+          <input type="radio" name="vision" value="protanopia">
+          Protanopia <span class="vision-badge">red-blind</span>
+        </label>
+        <label>
+          <input type="radio" name="vision" value="deuteranopia">
+          Deuteranopia <span class="vision-badge">green-blind</span>
+        </label>
+        <label>
+          <input type="radio" name="vision" value="tritanopia">
+          Tritanopia <span class="vision-badge">blue-blind</span>
+        </label>
+        <label>
+          <input type="radio" name="vision" value="monochromacy">
+          Monochromacy <span class="vision-badge">grayscale</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="card">
+      <h2>Contrast &amp; Luminance</h2>
+
+      <div class="stat-block">
+        <div class="stat-label">Contrast Ratio</div>
+        <div class="contrast-value" id="contrast-val">—</div>
+        <div class="wcag-note" id="wcag-note"></div>
+      </div>
+
+      <div class="lum-row">
+        <span>Background luminance</span>
+        <span id="bg-lum">—</span>
+      </div>
+      <div class="lum-row">
+        <span>Text luminance</span>
+        <span id="txt-lum">—</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Right: Display ── -->
+  <div class="display-panel">
+    <div class="text-display" id="text-display">
+      <p class="sample-text" id="sample-text">
+        The quick brown fox jumps over the lazy dog.<br><br>
+        Pack my box with five dozen liquor jugs.<br>
+        Sphinx of black quartz, judge my vow.<br>
+        How vexingly quick daft zebras jump!<br>
+        The five boxing wizards jump quickly.<br>
+        Amazingly few discotheques provide jukeboxes.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── State ─────────────────────────────────────────────────────────────────
+  const state = {
+    bg:   { r: 30,  g: 30,  b: 30  },
+    text: { r: 220, g: 220, b: 220 },
+    size: 18,
+    vision: 'normal'
+  };
+
+  // ── Vision Matrices ────────────────────────────────────────────────────────
+  const MATRICES = {
+    protanopia:   [
+      [0.567, 0.433, 0.000],
+      [0.558, 0.442, 0.000],
+      [0.000, 0.242, 0.758]
+    ],
+    deuteranopia: [
+      [0.625, 0.375, 0.000],
+      [0.700, 0.300, 0.000],
+      [0.000, 0.300, 0.700]
+    ],
+    tritanopia: [
+      [0.950, 0.050, 0.000],
+      [0.000, 0.433, 0.567],
+      [0.000, 0.475, 0.525]
+    ],
+    monochromacy: [
+      [0.299, 0.587, 0.114],
+      [0.299, 0.587, 0.114],
+      [0.299, 0.587, 0.114]
+    ]
+  };
+
+  function applyMatrix(r, g, b, m) {
+    const rn = r / 255, gn = g / 255, bn = b / 255;
+    return [
+      Math.round(Math.min(255, Math.max(0, (m[0][0]*rn + m[0][1]*gn + m[0][2]*bn) * 255))),
+      Math.round(Math.min(255, Math.max(0, (m[1][0]*rn + m[1][1]*gn + m[1][2]*bn) * 255))),
+      Math.round(Math.min(255, Math.max(0, (m[2][0]*rn + m[2][1]*gn + m[2][2]*bn) * 255)))
+    ];
+  }
+
+  function simColor(c) {
+    if (state.vision === 'normal') return [c.r, c.g, c.b];
+    return applyMatrix(c.r, c.g, c.b, MATRICES[state.vision]);
+  }
+
+  // ── WCAG Calculations ─────────────────────────────────────────────────────
+  function linearize(v) {
+    const s = v / 255;
+    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  }
+
+  function luminance(r, g, b) {
+    return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
+  }
+
+  function contrastRatio(l1, l2) {
+    const lighter = Math.max(l1, l2);
+    const darker  = Math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  // ── Sync helpers ──────────────────────────────────────────────────────────
+  function clampColor(v)  { return Math.max(0,  Math.min(255, Math.round(parseInt(v) || 0))); }
+  function clampSize(v)   { return Math.max(8,  Math.min(72,  Math.round(parseInt(v) || 8))); }
+
+  function bindColorPair(sliderId, numId, stateKey, channel) {
+    const slider = document.getElementById(sliderId);
+    const num    = document.getElementById(numId);
+    slider.addEventListener('input', () => {
+      const v = clampColor(slider.value);
+      slider.value = v; num.value = v;
+      state[stateKey][channel] = v;
+      update();
+    });
+    num.addEventListener('input', () => {
+      const v = clampColor(num.value);
+      slider.value = v; num.value = v;
+      state[stateKey][channel] = v;
+      update();
+    });
+  }
+
+  // ── Update ────────────────────────────────────────────────────────────────
+  function rgb(r, g, b) { return `rgb(${r},${g},${b})`; }
+
+  function update() {
+    const [bgR,  bgG,  bgB]  = simColor(state.bg);
+    const [txR,  txG,  txB]  = simColor(state.text);
+
+    // Swatches always show the raw (un-simulated) color
+    document.getElementById('bg-swatch').style.background  = rgb(state.bg.r,   state.bg.g,   state.bg.b);
+    document.getElementById('txt-swatch').style.background = rgb(state.text.r, state.text.g, state.text.b);
+
+    // Text display uses simulated colors
+    const display = document.getElementById('text-display');
+    display.style.backgroundColor = rgb(bgR, bgG, bgB);
+    display.style.color           = rgb(txR, txG, txB);
+    document.getElementById('sample-text').style.fontSize = state.size + 'px';
+
+    // Stats use simulated colors
+    const bgLum = luminance(bgR, bgG, bgB);
+    const txLum = luminance(txR, txG, txB);
+    const ratio = contrastRatio(bgLum, txLum);
+
+    document.getElementById('bg-lum').textContent  = bgLum.toFixed(3);
+    document.getElementById('txt-lum').textContent = txLum.toFixed(3);
+
+    const contrastEl = document.getElementById('contrast-val');
+    const noteEl     = document.getElementById('wcag-note');
+
+    contrastEl.textContent = ratio.toFixed(2) + ':1';
+
+    if (ratio >= 4.5) {
+      contrastEl.className = 'contrast-value pass';
+      noteEl.textContent   = 'WCAG AA — pass';
+    } else if (ratio >= 3) {
+      contrastEl.className = 'contrast-value warn';
+      noteEl.textContent   = 'Below WCAG AA (4.5:1)';
+    } else {
+      contrastEl.className = 'contrast-value fail';
+      noteEl.textContent   = 'Fail — low contrast';
+    }
+  }
+
+  // ── Wire controls ─────────────────────────────────────────────────────────
+  bindColorPair('bg-r-s',  'bg-r-n',  'bg',   'r');
+  bindColorPair('bg-g-s',  'bg-g-n',  'bg',   'g');
+  bindColorPair('bg-b-s',  'bg-b-n',  'bg',   'b');
+  bindColorPair('txt-r-s', 'txt-r-n', 'text', 'r');
+  bindColorPair('txt-g-s', 'txt-g-n', 'text', 'g');
+  bindColorPair('txt-b-s', 'txt-b-n', 'text', 'b');
+
+  // Size
+  const sizeS = document.getElementById('size-s');
+  const sizeN = document.getElementById('size-n');
+  sizeS.addEventListener('input', () => {
+    const v = clampSize(sizeS.value);
+    sizeS.value = v; sizeN.value = v; state.size = v; update();
+  });
+  sizeN.addEventListener('input', () => {
+    const v = clampSize(sizeN.value);
+    sizeS.value = v; sizeN.value = v; state.size = v; update();
+  });
+
+  // Vision
+  document.querySelectorAll('input[name="vision"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      state.vision = radio.value;
+      const isNormal = radio.value === 'normal';
+      ['bg-group', 'txt-group', 'size-group'].forEach(id => {
+        const group = document.getElementById(id);
+        group.classList.toggle('disabled', !isNormal);
+        group.querySelectorAll('input').forEach(el => el.disabled = !isNormal);
+      });
+      update();
+    });
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  update();
+</script>
+</body>
+</html>
