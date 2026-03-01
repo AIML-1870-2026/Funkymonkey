@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jungle Jumper</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a0a00;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  h1 {
+    color: #7fff00;
+    font-size: 2rem;
+    text-shadow: 0 0 12px #3a7a00;
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+  }
+  #gameContainer {
+    position: relative;
+    width: 900px;
+    height: 400px;
+    border: 3px solid #2d5a00;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 30px #1a4000;
+  }
+  #canvas {
+    display: block;
+  }
+  #ui {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    pointer-events: none;
+    text-align: right;
+  }
+  #score {
+    color: #fff;
+    font-size: 1.3rem;
+    font-weight: bold;
+    text-shadow: 1px 1px 3px #000;
+  }
+  #best {
+    color: #ffd700;
+    font-size: 0.9rem;
+    text-shadow: 1px 1px 3px #000;
+  }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+  }
+  #overlay h2 { font-size: 2rem; margin-bottom: 10px; }
+  #overlay p  { font-size: 1rem; opacity: 0.85; margin-bottom: 6px; }
+  #overlay .btn {
+    margin-top: 16px;
+    padding: 10px 30px;
+    background: #3a8a00;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  #overlay .btn:hover { background: #5ab800; }
+</style>
+</head>
+<body>
+<h1>🌿 JUNGLE JUMPER 🌿</h1>
+<div id="gameContainer">
+  <canvas id="canvas" width="900" height="400"></canvas>
+  <div id="ui">
+    <div id="score">Score: 0.0</div>
+    <div id="best">Best: 0.0</div>
+  </div>
+  <div id="overlay">
+    <h2>🌿 JUNGLE JUMPER 🌿</h2>
+    <p>Jump over obstacles — survive the boss waves!</p>
+    <p>Press <strong>Space</strong> or <strong>↑</strong> or <strong>Tap</strong> to jump (double jump allowed)</p>
+    <button class="btn" id="startBtn">Start Game</button>
+  </div>
+</div>
+
+<script>
+// ─── Constants ───────────────────────────────────────────────────────────────
+const W = 900;
+const H = 400;
+const GROUND_Y = H - 60; // 340
+const BOSS_WARNING_DURATION = 180;
+const BOSS_DURATION = 600; // legacy, do not remove
+
+// ─── Canvas ──────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// ─── Audio ───────────────────────────────────────────────────────────────────
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playJump() {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+  osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 0.12);
+  gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+}
+
+function playDeath() {
+  const osc1 = audioCtx.createOscillator();
+  const gain1 = audioCtx.createGain();
+  osc1.connect(gain1); gain1.connect(audioCtx.destination);
+  osc1.type = 'sawtooth';
+  osc1.frequency.setValueAtTime(180, audioCtx.currentTime);
+  gain1.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gain1.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+  osc1.start(); osc1.stop(audioCtx.currentTime + 0.2);
+
+  const osc2 = audioCtx.createOscillator();
+  const gain2 = audioCtx.createGain();
+  osc2.connect(gain2); gain2.connect(audioCtx.destination);
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(400, audioCtx.currentTime + 0.05);
+  osc2.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.5);
+  gain2.gain.setValueAtTime(0.2, audioCtx.currentTime + 0.05);
+  gain2.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.55);
+  osc2.start(audioCtx.currentTime + 0.05);
+  osc2.stop(audioCtx.currentTime + 0.55);
+}
+
+function playBossWarning() {
+  for (let i = 0; i < 3; i++) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sawtooth';
+    const t = audioCtx.currentTime + i * 0.35;
+    osc.frequency.setValueAtTime(200 + i * 100, t);
+    osc.frequency.linearRampToValueAtTime(400 + i * 100, t + 0.25);
+    gain.gain.setValueAtTime(0.22, t);
+    gain.gain.linearRampToValueAtTime(0, t + 0.28);
+    osc.start(t); osc.stop(t + 0.3);
+  }
+}
+
+function playBossEnd() {
+  const notes = [330, 415, 523, 659];
+  notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'square';
+    const t = audioCtx.currentTime + i * 0.18;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.linearRampToValueAtTime(0, t + 0.2);
+    osc.start(t); osc.stop(t + 0.22);
+  });
+}
+
+// ─── Game State ──────────────────────────────────────────────────────────────
+let state = 'idle';
+let score = 0;
+let best = 0;
+let gameSpeed = 3.5;
+let obstacles = [];
+let particles = [];
+let spawnTimer = 0;
+let elapsedSeconds = 0;
+let nextBossAt = 30;
+let bossWarning = false;
+let bossWarningTimer = 0;
+let bossActive = false;
+let bossTimer = 0;
+let bossWaveTimer = 0;
+let bossWaveIndex = 0;
+let bossNumber = 0;
+let currentBossPattern = [];
+
+// Screen shake
+let shakeDuration = 0;
+let shakeIntensity = 0;
+
+function triggerShake(intensity, duration) {
+  shakeIntensity = intensity;
+  shakeDuration = duration;
+}
+
+// ─── Boss Patterns ────────────────────────────────────────────────────────────
+const BOSS_PATTERNS = [
+  // Pattern A: triple spikes, logs, more spikes
+  [
+    { type: 'spike', w: 28, h: 30, gap: 30 },
+    { type: 'spike', w: 22, h: 26, gap: 55 },
+    { type: 'spike', w: 28, h: 32, gap: 55 },
+    { type: 'log',   w: 30, h: 22, gap: 80 },
+    { type: 'log',   w: 25, h: 20, gap: 60 },
+    { type: 'spike', w: 24, h: 28, gap: 70 },
+    { type: 'spike', w: 30, h: 30, gap: 55 },
+    { type: 'log',   w: 28, h: 24, gap: 65 },
+    { type: 'spike', w: 26, h: 30, gap: 60 },
+    { type: 'spike', w: 32, h: 34, gap: 55 },
+  ],
+  // Pattern B: alternating logs and spikes
+  [
+    { type: 'log',   w: 28, h: 22, gap: 40 },
+    { type: 'spike', w: 26, h: 28, gap: 60 },
+    { type: 'log',   w: 30, h: 20, gap: 60 },
+    { type: 'spike', w: 24, h: 30, gap: 60 },
+    { type: 'log',   w: 26, h: 24, gap: 60 },
+    { type: 'spike', w: 28, h: 26, gap: 60 },
+    { type: 'log',   w: 32, h: 22, gap: 60 },
+    { type: 'spike', w: 30, h: 32, gap: 60 },
+    { type: 'log',   w: 24, h: 20, gap: 60 },
+    { type: 'spike', w: 26, h: 28, gap: 60 },
+  ],
+];
+
+// ─── Monkey ───────────────────────────────────────────────────────────────────
+const monkey = {
+  x: 380,
+  y: GROUND_Y,
+  w: 36, h: 40,
+  vy: 0,
+  grounded: true,
+  jumpCount: 0,
+  maxJumps: 2,
+  squashX: 1, squashY: 1,
+  dead: false,
+  deadTimer: 0,
+};
+
+function jump() {
+  if (state !== 'playing') return;
+  if (monkey.jumpCount < monkey.maxJumps) {
+    monkey.vy = -14;
+    monkey.grounded = false;
+    monkey.jumpCount++;
+    monkey.squashX = 0.7;
+    monkey.squashY = 1.4;
+    spawnDust();
+    playJump();
+  }
+}
+
+function spawnDust() {
+  for (let i = 0; i < 5; i++) {
+    particles.push({
+      x: monkey.x,
+      y: monkey.y + monkey.h,
+      vx: (Math.random() - 0.5) * 2.5,
+      vy: Math.random() * -1.5 - 0.5,
+      life: 1,
+      decay: 0.06 + Math.random() * 0.04,
+      size: 4 + Math.random() * 4,
+      color: '#c8a860',
+      type: 'dust',
+    });
+  }
+}
+
+function spawnDeathParticles() {
+  for (let i = 0; i < 14; i++) {
+    const angle = (Math.PI * 2 * i) / 14;
+    particles.push({
+      x: monkey.x + monkey.w / 2,
+      y: monkey.y + monkey.h / 2,
+      vx: Math.cos(angle) * (2 + Math.random() * 3),
+      vy: Math.sin(angle) * (2 + Math.random() * 3) - 2,
+      life: 1,
+      decay: 0.03 + Math.random() * 0.03,
+      size: 5 + Math.random() * 5,
+      color: `hsl(${30 + Math.random() * 30}, 90%, 60%)`,
+      type: 'death',
+    });
+  }
+}
+
+// ─── Parallax Background ──────────────────────────────────────────────────────
+const clouds = Array.from({ length: 4 }, (_, i) => ({
+  x: i * 240,
+  y: 30 + Math.random() * 60,
+  w: 80 + Math.random() * 60,
+  h: 28 + Math.random() * 18,
+}));
+
+const treesLayer1 = Array.from({ length: 6 }, (_, i) => ({
+  x: i * 160,
+  y: GROUND_Y - 90,
+  type: Math.random() > 0.5 ? 'tree' : 'palm',
+}));
+
+const treesLayer2 = Array.from({ length: 8 }, (_, i) => ({
+  x: i * 120,
+  y: GROUND_Y - 60,
+  type: Math.random() > 0.5 ? 'tree' : 'palm',
+}));
+
+// ─── Drawing ──────────────────────────────────────────────────────────────────
+function drawSky() {
+  const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+  grad.addColorStop(0, '#0d3300');
+  grad.addColorStop(1, '#3a8c00');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, GROUND_Y);
+}
+
+function drawCloud(c) {
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = '#d0ffb0';
+  ctx.beginPath();
+  ctx.ellipse(c.x, c.y, c.w * 0.5, c.h * 0.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(c.x + c.w * 0.3, c.y - c.h * 0.1, c.w * 0.35, c.h * 0.42, 0, 0, Math.PI * 2);
+  ctx.ellipse(c.x - c.w * 0.3, c.y + c.h * 0.05, c.w * 0.3, c.h * 0.38, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawTree(x, y, scale) {
+  scale = scale || 1;
+  // trunk
+  ctx.fillStyle = '#5a3010';
+  ctx.fillRect(x - 6 * scale, y, 12 * scale, 40 * scale);
+  // foliage
+  const colors = ['#1a6600', '#228800', '#2da800'];
+  colors.forEach((c, i) => {
+    ctx.fillStyle = c;
+    ctx.beginPath();
+    ctx.ellipse(x, y - 20 * scale - i * 14 * scale, 22 * scale - i * 3 * scale, 18 * scale - i * 2 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawPalm(x, y, scale) {
+  scale = scale || 1;
+  // curved trunk
+  ctx.strokeStyle = '#6b4010';
+  ctx.lineWidth = 7 * scale;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x, y + 35 * scale);
+  ctx.quadraticCurveTo(x + 10 * scale, y + 10 * scale, x + 5 * scale, y - 10 * scale);
+  ctx.stroke();
+  // leaves
+  const leafAngles = [-0.6, -0.2, 0.2, 0.7, 1.1];
+  leafAngles.forEach(a => {
+    ctx.save();
+    ctx.translate(x + 5 * scale, y - 10 * scale);
+    ctx.rotate(a - Math.PI / 2);
+    ctx.fillStyle = '#2db800';
+    ctx.beginPath();
+    ctx.ellipse(0, -18 * scale, 5 * scale, 18 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function drawGround() {
+  // ground fill
+  ctx.fillStyle = '#3d1f00';
+  ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+  // grass strip
+  ctx.fillStyle = '#2d7a00';
+  ctx.fillRect(0, GROUND_Y, W, 10);
+  // grass tufts
+  ctx.fillStyle = '#3a9900';
+  for (let gx = 10; gx < W; gx += 30 + Math.sin(gx) * 10) {
+    ctx.beginPath();
+    ctx.moveTo(gx, GROUND_Y);
+    ctx.lineTo(gx - 4, GROUND_Y - 8);
+    ctx.lineTo(gx, GROUND_Y - 5);
+    ctx.lineTo(gx + 4, GROUND_Y - 8);
+    ctx.lineTo(gx + 8, GROUND_Y);
+    ctx.fill();
+  }
+}
+
+function drawMonkey() {
+  ctx.save();
+  const cx = monkey.x + monkey.w / 2;
+  const cy = monkey.y + monkey.h / 2;
+  ctx.translate(cx, cy);
+
+  if (monkey.dead) {
+    ctx.rotate(monkey.deadTimer * 0.15);
+  }
+
+  ctx.scale(monkey.squashX, monkey.squashY);
+
+  // body
+  ctx.fillStyle = '#8B4513';
+  ctx.beginPath();
+  ctx.ellipse(0, 4, 14, 16, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // belly
+  ctx.fillStyle = '#D2691E';
+  ctx.beginPath();
+  ctx.ellipse(0, 7, 8, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // head
+  ctx.fillStyle = '#8B4513';
+  ctx.beginPath();
+  ctx.ellipse(0, -12, 13, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // face
+  ctx.fillStyle = '#D2691E';
+  ctx.beginPath();
+  ctx.ellipse(0, -10, 8, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ears
+  ctx.fillStyle = '#8B4513';
+  ctx.beginPath();
+  ctx.ellipse(-13, -14, 5, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(13, -14, 5, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // eyes
+  if (monkey.dead) {
+    // X eyes
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 2;
+    [[-5, -13], [5, -13]].forEach(([ex, ey]) => {
+      ctx.beginPath();
+      ctx.moveTo(ex - 3, ey - 3); ctx.lineTo(ex + 3, ey + 3);
+      ctx.moveTo(ex + 3, ey - 3); ctx.lineTo(ex - 3, ey + 3);
+      ctx.stroke();
+    });
+  } else {
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.ellipse(-5, -13, 3, 3, 0, 0, Math.PI * 2);
+    ctx.ellipse(5, -13, 3, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // eye shine
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.ellipse(-4, -14, 1.2, 1.2, 0, 0, Math.PI * 2);
+    ctx.ellipse(6, -14, 1.2, 1.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // tail
+  ctx.strokeStyle = '#8B4513';
+  ctx.lineWidth = 3.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(13, 10);
+  ctx.quadraticCurveTo(28, 0, 22, -12);
+  ctx.stroke();
+
+  // legs
+  ctx.fillStyle = '#8B4513';
+  ctx.beginPath();
+  ctx.ellipse(-6, 18, 5, 8, -0.3, 0, Math.PI * 2);
+  ctx.ellipse(6, 18, 5, 8, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawObstacle(obs) {
+  if (obs.type === 'spike') {
+    // wooden base
+    ctx.fillStyle = '#8B5E2A';
+    ctx.fillRect(obs.x, GROUND_Y - obs.h * 0.4, obs.w, obs.h * 0.4);
+    // golden spike(s)
+    const numSpikes = Math.max(1, Math.floor(obs.w / 12));
+    const sw = obs.w / numSpikes;
+    for (let i = 0; i < numSpikes; i++) {
+      const sx = obs.x + i * sw + sw / 2;
+      ctx.fillStyle = '#d4a800';
+      ctx.beginPath();
+      ctx.moveTo(sx, GROUND_Y - obs.h);
+      ctx.lineTo(sx - sw * 0.4, GROUND_Y - obs.h * 0.4);
+      ctx.lineTo(sx + sw * 0.4, GROUND_Y - obs.h * 0.4);
+      ctx.closePath();
+      ctx.fill();
+      // shine
+      ctx.fillStyle = '#fff8a0';
+      ctx.beginPath();
+      ctx.moveTo(sx, GROUND_Y - obs.h);
+      ctx.lineTo(sx - sw * 0.12, GROUND_Y - obs.h * 0.65);
+      ctx.lineTo(sx + sw * 0.04, GROUND_Y - obs.h * 0.6);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // vine decoration
+    ctx.strokeStyle = '#2d8a00';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(obs.x + 3, GROUND_Y - obs.h * 0.35);
+    ctx.quadraticCurveTo(obs.x + obs.w * 0.4, GROUND_Y - obs.h * 0.55, obs.x + obs.w - 3, GROUND_Y - obs.h * 0.3);
+    ctx.stroke();
+  } else if (obs.type === 'log') {
+    // log body
+    const ly = GROUND_Y - obs.h;
+    const grad = ctx.createLinearGradient(obs.x, ly, obs.x, ly + obs.h);
+    grad.addColorStop(0, '#6b4010');
+    grad.addColorStop(0.5, '#8B5E2A');
+    grad.addColorStop(1, '#5a3010');
+    ctx.fillStyle = grad;
+    ctx.fillRect(obs.x, ly, obs.w, obs.h);
+    // end grain circles
+    ctx.strokeStyle = '#5a3010';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(obs.x + obs.w / 2, ly + obs.h / 2, obs.w * 0.35, obs.h * 0.35, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(obs.x + obs.w / 2, ly + obs.h / 2, obs.w * 0.18, obs.h * 0.18, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    // moss patches
+    ctx.fillStyle = '#2d7a00';
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    ctx.ellipse(obs.x + obs.w * 0.25, ly + 3, obs.w * 0.18, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(obs.x + obs.w * 0.7, ly + 2, obs.w * 0.14, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(0, p.size * p.life), 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawBossWarningOverlay() {
+  const flash = Math.sin(bossWarningTimer * 0.18) > 0;
+  // red sky tint
+  ctx.fillStyle = 'rgba(180,0,0,0.18)';
+  ctx.fillRect(0, 0, W, H);
+  // flashing border
+  if (flash) {
+    ctx.strokeStyle = '#ff2200';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(4, 4, W - 8, H - 8);
+  }
+  // pulsing text
+  const pulse = 0.85 + 0.15 * Math.sin(bossWarningTimer * 0.25);
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.scale(pulse, pulse);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 38px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = '#ff0000';
+  ctx.shadowBlur = 20;
+  ctx.fillText('⚠ BOSS INCOMING! ⚠', 0, 0);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function drawBossActiveOverlay() {
+  // subtle red border pulse
+  const pulse = 0.5 + 0.5 * Math.sin(bossTimer * 0.12);
+  ctx.strokeStyle = `rgba(255,30,0,${0.3 + 0.3 * pulse})`;
+  ctx.lineWidth = 6;
+  ctx.strokeRect(3, 3, W - 6, H - 6);
+  // boss label top-left
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(8, 8, 180, 30);
+  ctx.fillStyle = '#ff6644';
+  ctx.font = 'bold 16px Segoe UI';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`👹 BOSS WAVE ${bossNumber}`, 16, 23);
+  // progress bar at bottom
+  const prog = currentBossPattern.length > 0 ? bossWaveIndex / currentBossPattern.length : 0;
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(0, H - 10, W, 10);
+  ctx.fillStyle = '#ff3300';
+  ctx.fillRect(0, H - 10, W * prog, 10);
+}
+
+// ─── Spawn / Update Obstacles ─────────────────────────────────────────────────
+function spawnObstacle(type, w, h) {
+  type = type || (Math.random() > 0.5 ? 'spike' : 'log');
+  w = w || (20 + Math.random() * 25);
+  h = h || (22 + Math.random() * 12);
+  obstacles.push({ type, x: W + 20, w, h, scored: false });
+}
+
+function updateObstacles() {
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const obs = obstacles[i];
+    obs.x -= gameSpeed;
+
+    // scoring
+    if (!obs.scored && obs.x + obs.w < monkey.x) {
+      obs.scored = true;
+      score += 1;
+    }
+
+    // collision (4px shrunk hitbox)
+    if (
+      state === 'playing' &&
+      obs.x + obs.w - 4 > monkey.x + 4 &&
+      obs.x + 4 < monkey.x + monkey.w - 4 &&
+      GROUND_Y - obs.h + 4 < monkey.y + monkey.h - 4 &&
+      monkey.y + 4 < GROUND_Y
+    ) {
+      die();
+      return;
+    }
+
+    // remove off-screen
+    if (obs.x + obs.w < -10) obstacles.splice(i, 1);
+  }
+}
+
+// ─── Game Logic ────────────────────────────────────────────────────────────────
+function die() {
+  if (monkey.dead) return;
+  monkey.dead = true;
+  monkey.vy = -10;
+  state = 'dying';
+  if (score > best) best = score;
+  playDeath();
+  spawnDeathParticles();
+  triggerShake(6, 20);
+}
+
+function showDeathScreen() {
+  const overlay = document.getElementById('overlay');
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `
+    <h2>💀 GAME OVER 💀</h2>
+    <p>Score: <strong>${score.toFixed(1)}</strong></p>
+    <p>Best: <strong>${best.toFixed(1)}</strong></p>
+    <button class="btn" id="startBtn">Try Again</button>
+  `;
+  document.getElementById('startBtn').addEventListener('click', startGame);
+}
+
+function startGame() {
+  document.getElementById('overlay').style.display = 'none';
+
+  // reset all state
+  score = 0;
+  gameSpeed = 3.5;
+  obstacles = [];
+  particles = [];
+  spawnTimer = 0;
+  elapsedSeconds = 0;
+  nextBossAt = 30;
+  bossWarning = false;
+  bossWarningTimer = 0;
+  bossActive = false;
+  bossTimer = 0;
+  bossWaveTimer = 0;
+  bossWaveIndex = 0;
+  bossNumber = 0;
+  currentBossPattern = [];
+  shakeDuration = 0;
+  shakeIntensity = 0;
+
+  monkey.y = GROUND_Y;
+  monkey.vy = 0;
+  monkey.grounded = true;
+  monkey.jumpCount = 0;
+  monkey.squashX = 1;
+  monkey.squashY = 1;
+  monkey.dead = false;
+  monkey.deadTimer = 0;
+
+  state = 'playing';
+}
+
+// ─── Main Loop ────────────────────────────────────────────────────────────────
+let animFrame;
+
+function update() {
+  if (state === 'playing') {
+    elapsedSeconds += 1 / 60;
+    score += 0.015;
+    gameSpeed = 3.5 + score * 0.03;
+
+    // monkey physics
+    monkey.vy += 0.7;
+    monkey.y += monkey.vy;
+    if (monkey.y >= GROUND_Y) {
+      monkey.y = GROUND_Y;
+      monkey.vy = 0;
+      monkey.jumpCount = 0;
+      monkey.grounded = true;
+    } else {
+      monkey.grounded = false;
+    }
+
+    // squash & stretch lerp
+    monkey.squashX += (1 - monkey.squashX) * 0.2;
+    monkey.squashY += (1 - monkey.squashY) * 0.2;
+
+    // boss trigger
+    if (!bossWarning && !bossActive && elapsedSeconds >= nextBossAt) {
+      bossWarning = true;
+      bossWarningTimer = 0;
+      obstacles = [];
+      playBossWarning();
+    }
+
+    // boss warning countdown
+    if (bossWarning) {
+      bossWarningTimer++;
+      if (bossWarningTimer >= BOSS_WARNING_DURATION) {
+        bossWarning = false;
+        bossActive = true;
+        bossTimer = 0;
+        bossWaveTimer = 0;
+        bossWaveIndex = 0;
+        bossNumber++;
+        currentBossPattern = BOSS_PATTERNS[(bossNumber - 1) % BOSS_PATTERNS.length].slice();
+      }
+    }
+
+    // boss active: spawn from pattern
+    if (bossActive) {
+      bossTimer++;
+      bossWaveTimer++;
+      if (bossWaveIndex < currentBossPattern.length) {
+        const entry = currentBossPattern[bossWaveIndex];
+        if (bossWaveTimer >= entry.gap) {
+          spawnObstacle(entry.type, entry.w, entry.h);
+          bossWaveIndex++;
+          bossWaveTimer = 0;
+        }
+      } else if (obstacles.length === 0) {
+        // pattern done and all cleared
+        bossActive = false;
+        nextBossAt = elapsedSeconds + 30;
+        playBossEnd();
+        triggerShake(5, 18);
+      }
+    }
+
+    // normal obstacle spawning (paused during boss phases)
+    if (!bossWarning && !bossActive) {
+      spawnTimer--;
+      if (spawnTimer <= 0) {
+        spawnObstacle();
+        spawnTimer = Math.floor(60 + Math.random() * 80 - Math.min(gameSpeed * 5, 40));
+      }
+    }
+
+    updateObstacles();
+
+    // update particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.08;
+      p.life -= p.decay;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    // update UI
+    document.getElementById('score').textContent = `Score: ${score.toFixed(1)}`;
+    document.getElementById('best').textContent = `Best: ${best.toFixed(1)}`;
+  }
+
+  if (state === 'dying') {
+    monkey.deadTimer++;
+    monkey.vy += 0.7;
+    monkey.y += monkey.vy;
+    monkey.squashX += (1 - monkey.squashX) * 0.2;
+    monkey.squashY += (1 - monkey.squashY) * 0.2;
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.08;
+      p.life -= p.decay;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    if (monkey.deadTimer > 80) {
+      state = 'dead';
+      showDeathScreen();
+    }
+  }
+
+  // screen shake
+  let shakeX = 0, shakeY = 0;
+  if (shakeDuration > 0) {
+    shakeX = (Math.random() - 0.5) * shakeIntensity;
+    shakeY = (Math.random() - 0.5) * shakeIntensity;
+    shakeDuration--;
+    if (shakeDuration <= 0) shakeIntensity = 0;
+  }
+
+  // ─── Draw ───────────────────────────────────────────────────────────────────
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+
+  drawSky();
+
+  // clouds
+  clouds.forEach(c => {
+    c.x -= 0.3;
+    if (c.x < -120) c.x = W + 100;
+    drawCloud(c);
+  });
+
+  // background trees layer 1 (slow)
+  treesLayer1.forEach(t => {
+    t.x -= gameSpeed * 0.25;
+    if (t.x < -100) t.x = W + 100;
+    if (t.type === 'tree') drawTree(t.x, t.y, 0.85);
+    else drawPalm(t.x, t.y, 0.85);
+  });
+
+  // background trees layer 2 (medium)
+  treesLayer2.forEach(t => {
+    t.x -= gameSpeed * 0.5;
+    if (t.x < -100) t.x = W + 100;
+    if (t.type === 'tree') drawTree(t.x, t.y, 0.65);
+    else drawPalm(t.x, t.y, 0.65);
+  });
+
+  drawGround();
+  drawParticles();
+
+  // obstacles
+  obstacles.forEach(obs => drawObstacle(obs));
+
+  // boss overlays
+  if (bossWarning) drawBossWarningOverlay();
+  if (bossActive)  drawBossActiveOverlay();
+
+  drawMonkey();
+
+  ctx.restore(); // ends screen shake
+
+  animFrame = requestAnimationFrame(loop);
+}
+
+function loop() {
+  update();
+}
+
+// ─── Input ────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    if (state === 'idle' || state === 'dead') return;
+    jump();
+  }
+});
+
+canvas.addEventListener('pointerdown', () => {
+  if (state === 'idle' || state === 'dead') return;
+  jump();
+});
+
+// ─── Start ────────────────────────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click', startGame);
+
+// Initial idle draw (show something behind the overlay)
+(function idleDraw() {
+  drawSky();
+  clouds.forEach(c => drawCloud(c));
+  treesLayer1.forEach(t => { if (t.type === 'tree') drawTree(t.x, t.y, 0.85); else drawPalm(t.x, t.y, 0.85); });
+  treesLayer2.forEach(t => { if (t.type === 'tree') drawTree(t.x, t.y, 0.65); else drawPalm(t.x, t.y, 0.65); });
+  drawGround();
+  drawMonkey();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
