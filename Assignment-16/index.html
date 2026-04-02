@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drug Safety Explorer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #dff0fb 0%, #ecdff7 50%, #fde0ec 100%);
+    background-attachment: fixed;
+    color: #3b2f50;
+  }
+
+  header {
+    text-align: center;
+    padding: 2.5rem 1rem 1.2rem;
+  }
+
+  header h1 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, #9c7fc7, #c07fa8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+
+  header p.subtitle {
+    color: #7a6a90;
+    margin-top: 0.3rem;
+    font-size: 0.95rem;
+  }
+
+  .disclaimer {
+    background: rgba(255,252,254,0.82);
+    border-left: 4px solid #f4a7b9;
+    backdrop-filter: blur(6px);
+    margin: 0 auto 1.5rem;
+    max-width: 860px;
+    padding: 0.75rem 1.2rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    color: #7a6a90;
+    line-height: 1.5;
+  }
+
+  .search-section {
+    max-width: 860px;
+    margin: 0 auto 1.5rem;
+    padding: 0 1rem;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .search-row input {
+    flex: 1;
+    padding: 0.65rem 1rem;
+    border: 2px solid #d8c8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+    color: #3b2f50;
+    background: rgba(255,252,254,0.9);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-row input:focus { border-color: #9c7fc7; }
+
+  .btn-add {
+    padding: 0.65rem 1.4rem;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #b39ddb, #d49ab0);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .btn-add:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-add:active { transform: translateY(0); }
+
+  .quick-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .pill {
+    padding: 0.3rem 0.85rem;
+    border-radius: 999px;
+    border: 1.5px solid #c5aee8;
+    background: rgba(255,252,254,0.75);
+    color: #7a6a90;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .pill:hover {
+    background: #b39ddb;
+    color: #fff;
+    border-color: #b39ddb;
+  }
+
+  /* Comparison */
+  .compare-section {
+    max-width: 860px;
+    margin: 0 auto 1.8rem;
+    padding: 0 1rem;
+  }
+
+  .compare-card {
+    background: rgba(255,252,254,0.88);
+    backdrop-filter: blur(8px);
+    border-radius: 14px;
+    padding: 1.2rem 1.5rem;
+    box-shadow: 0 2px 16px rgba(140,100,180,0.1);
+  }
+
+  .compare-card h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #9c7fc7;
+    margin-bottom: 1rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: 0.82rem;
+  }
+
+  .compare-group { margin-bottom: 1rem; }
+  .compare-group:last-child { margin-bottom: 0; }
+
+  .compare-label {
+    font-size: 0.78rem;
+    color: #7a6a90;
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .compare-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .compare-bar-label {
+    width: 120px;
+    font-size: 0.82rem;
+    color: #3b2f50;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .compare-bar-track {
+    flex: 1;
+    height: 14px;
+    background: #ece6f5;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .compare-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.6s ease;
+  }
+
+  .compare-bar-val {
+    font-size: 0.78rem;
+    color: #7a6a90;
+    width: 70px;
+    text-align: right;
+  }
+
+  /* Drug cards grid */
+  .cards-grid {
+    max-width: 860px;
+    margin: 0 auto 2rem;
+    padding: 0 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 1.2rem;
+  }
+
+  .drug-card {
+    background: rgba(255,252,254,0.88);
+    backdrop-filter: blur(8px);
+    border-radius: 16px;
+    padding: 1.3rem 1.4rem 1rem;
+    box-shadow: 0 2px 20px rgba(140,100,180,0.1);
+    position: relative;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 0.9rem;
+  }
+
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .drug-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #3b2f50;
+    text-transform: capitalize;
+  }
+
+  .btn-remove {
+    background: none;
+    border: none;
+    color: #c5aee8;
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.1rem 0.3rem;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .btn-remove:hover { color: #c07fa8; background: #fde0ec; }
+
+  .metrics-row {
+    display: flex;
+    gap: 0.8rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .metric-box {
+    flex: 1;
+    background: #f5f0fc;
+    border-radius: 10px;
+    padding: 0.55rem 0.7rem;
+    text-align: center;
+  }
+
+  .metric-val {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #3b2f50;
+  }
+
+  .metric-lbl {
+    font-size: 0.68rem;
+    color: #7a6a90;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-top: 0.1rem;
+  }
+
+  /* Severity bar */
+  .severity-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+
+  .sev-serious { background: #f4a7b9; transition: width 0.6s ease; }
+  .sev-nonserious { background: #a5d6a7; transition: width 0.6s ease; }
+
+  .severity-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.72rem;
+    color: #7a6a90;
+    margin-top: 0.3rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0.3rem;
+    margin-bottom: 0.85rem;
+    border-bottom: 2px solid #ece6f5;
+  }
+
+  .tab-btn {
+    padding: 0.4rem 0.85rem;
+    border: none;
+    background: none;
+    color: #7a6a90;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s, border-color 0.15s;
+    border-radius: 6px 6px 0 0;
+  }
+
+  .tab-btn.active { color: #9c7fc7; border-color: #9c7fc7; }
+  .tab-btn:hover:not(.active) { color: #c07fa8; }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* Reactions bar chart */
+  .reaction-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  .reaction-name {
+    width: 150px;
+    color: #3b2f50;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: capitalize;
+    flex-shrink: 0;
+  }
+
+  .reaction-track {
+    flex: 1;
+    height: 12px;
+    background: #ece6f5;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .reaction-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #b39ddb;
+    transition: width 0.5s ease;
+  }
+
+  .reaction-count {
+    width: 45px;
+    text-align: right;
+    color: #7a6a90;
+    font-size: 0.75rem;
+  }
+
+  /* Outcome badges */
+  .outcomes-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .outcome-badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .outcome-count { font-weight: 400; opacity: 0.85; }
+
+  /* Demographics */
+  .demo-section { margin-bottom: 0.9rem; }
+  .demo-section:last-child { margin-bottom: 0; }
+  .demo-title { font-size: 0.75rem; color: #7a6a90; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.5rem; }
+
+  /* Loading / error */
+  .loading-state, .error-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #7a6a90;
+    font-size: 0.9rem;
+  }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #ece6f5;
+    border-top-color: #9c7fc7;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 0.7rem;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-state { color: #c07fa8; }
+
+  footer {
+    max-width: 860px;
+    margin: 0 auto 2rem;
+    padding: 0 1rem;
+    font-size: 0.73rem;
+    color: #9a8aaa;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    .cards-grid { grid-template-columns: 1fr; }
+    header h1 { font-size: 1.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Drug Safety Explorer</h1>
+  <p class="subtitle">FDA Adverse Event Reporting System (FAERS) — Educational Tool</p>
+</header>
+
+<div class="disclaimer">
+  <strong>Disclaimer:</strong> For educational purposes only. This tool is not a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider regarding any medical questions or conditions.
+</div>
+
+<div class="search-section">
+  <div class="search-row">
+    <input type="text" id="drugInput" placeholder="Search drug by generic or brand name…" />
+    <button class="btn-add" onclick="addDrug()">+ Add Drug</button>
+  </div>
+  <div class="quick-pills">
+    <span class="pill" onclick="quickAdd('Aspirin')">Aspirin</span>
+    <span class="pill" onclick="quickAdd('Ibuprofen')">Ibuprofen</span>
+    <span class="pill" onclick="quickAdd('Metformin')">Metformin</span>
+    <span class="pill" onclick="quickAdd('Atorvastatin')">Atorvastatin</span>
+    <span class="pill" onclick="quickAdd('Lisinopril')">Lisinopril</span>
+    <span class="pill" onclick="quickAdd('Sertraline')">Sertraline</span>
+    <span class="pill" onclick="quickAdd('Amoxicillin')">Amoxicillin</span>
+    <span class="pill" onclick="quickAdd('Prednisone')">Prednisone</span>
+  </div>
+</div>
+
+<div class="compare-section" id="compareSection" style="display:none;"></div>
+<div class="cards-grid" id="cardsGrid"></div>
+
+<footer>
+  This product uses publicly available data from the U.S. Food and Drug Administration (FDA). FDA is not responsible for the product and does not endorse or recommend this or any other product.<br><br>
+  Data is sourced from the OpenFDA API and the FDA Adverse Event Reporting System (FAERS). Report counts reflect submitted reports and do not imply causation. Not intended for clinical or diagnostic use.
+</footer>
+
+<script>
+const DOT_COLORS = ['#b39ddb','#f4a7b9','#80cbc4','#ffcc80','#a5d6a7','#90caf9'];
+const COMPARE_COLORS = ['#90caf9','#f4a7b9','#ffcc80','#80cbc4'];
+
+const OUTCOME_LABELS = {1:'Recovered',2:'Recovering',3:'Not Recovered',4:'Recovered w/ Effects',5:'Fatal',6:'Unknown'};
+const OUTCOME_COLORS = {
+  1:'background:#d4edda;color:#276238',
+  2:'background:#d1ecf1;color:#0c5460',
+  3:'background:#f8d7da;color:#721c24',
+  4:'background:#fff3cd;color:#856404',
+  5:'background:#f5c6cb;color:#491217',
+  6:'background:#e2e3e5;color:#383d41'
+};
+const AGE_LABELS = {1:'Neonate',2:'Infant',3:'Child',4:'Adolescent',5:'Adult',6:'Elderly'};
+
+const BASE = 'https://api.fda.gov/drug/event.json';
+let drugs = []; // [{name, data, colorIdx}]
+let colorIdx = 0;
+
+function buildQuery(name) {
+  return [
+    `patient.drug.openfda.generic_name:"${encodeURIComponent(name)}"`,
+    `patient.drug.openfda.brand_name:"${encodeURIComponent(name)}"`,
+    `patient.drug.medicinalproduct:"${encodeURIComponent(name)}"`
+  ];
+}
+
+async function fetchWithFallback(queries, extra = '') {
+  for (const q of queries) {
+    const search = extra ? `(${q})+AND+${extra}` : q;
+    const url = `${BASE}?search=${search}&limit=1`;
+    try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const d = await r.json();
+      if (d.meta && d.meta.results.total > 0) return { query: q, data: d };
+    } catch { continue; }
+  }
+  return null;
+}
+
+async function fetchCount(query, countField, limit = 10) {
+  const url = `${BASE}?search=${query}&count=${countField}&limit=${limit}`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return [];
+    const d = await r.json();
+    return d.results || [];
+  } catch { return []; }
+}
+
+async function fetchDrugData(name) {
+  const queries = buildQuery(name);
+
+  // Find working query via total reports call
+  const totalResult = await fetchWithFallback(queries);
+  if (!totalResult) return null;
+
+  const q = totalResult.query;
+  const total = totalResult.data.meta.results.total;
+
+  // Serious count
+  let serious = 0;
+  try {
+    const sr = await fetch(`${BASE}?search=(${q})+AND+serious:1&limit=1`);
+    if (sr.ok) {
+      const sd = await sr.json();
+      serious = sd.meta?.results?.total || 0;
+    }
+  } catch {}
+
+  // Parallel data fetches
+  const [reactions, outcomes, sexData, ageData] = await Promise.all([
+    fetchCount(q, 'patient.reaction.reactionmeddrapt.exact', 10),
+    fetchCount(q, 'patient.reaction.reactionoutcome', 10),
+    fetchCount(q, 'patient.patientsex', 5),
+    fetchCount(q, 'patient.patientagegroup', 10)
+  ]);
+
+  return { total, serious, reactions, outcomes, sexData, ageData };
+}
+
+async function addDrug(nameOverride) {
+  const input = document.getElementById('drugInput');
+  const name = (nameOverride || input.value).trim();
+  if (!name) return;
+
+  if (drugs.length >= 4) {
+    alert('Maximum 4 drugs at a time. Remove one to add another.');
+    return;
+  }
+
+  if (drugs.find(d => d.name.toLowerCase() === name.toLowerCase())) {
+    alert(`"${name}" is already loaded.`);
+    input.value = '';
+    return;
+  }
+
+  const ci = colorIdx % DOT_COLORS.length;
+  colorIdx++;
+
+  const cardId = 'card-' + Date.now();
+  drugs.push({ name, data: null, colorIdx: ci, cardId, loading: true });
+  input.value = '';
+  renderCards();
+
+  const data = await fetchDrugData(name);
+  const entry = drugs.find(d => d.cardId === cardId);
+  if (!entry) return; // removed while loading
+
+  entry.loading = false;
+  entry.data = data;
+  renderCards();
+}
+
+function quickAdd(name) {
+  document.getElementById('drugInput').value = name;
+  addDrug(name);
+}
+
+function removeDrug(cardId) {
+  drugs = drugs.filter(d => d.cardId !== cardId);
+  renderCards();
+}
+
+function fmtNum(n) {
+  if (n == null) return '—';
+  return n >= 1000000 ? (n/1000000).toFixed(1)+'M' : n >= 1000 ? (n/1000).toFixed(1)+'K' : String(n);
+}
+
+function renderCards() {
+  renderCompare();
+  const grid = document.getElementById('cardsGrid');
+  grid.innerHTML = drugs.map(d => renderCard(d)).join('');
+}
+
+function renderCard(entry) {
+  const { name, data, colorIdx: ci, cardId, loading } = entry;
+  const dot = DOT_COLORS[ci];
+
+  let body = '';
+  if (loading) {
+    body = `<div class="loading-state"><div class="spinner"></div>Fetching FDA data…</div>`;
+  } else if (!data) {
+    body = `<div class="error-state">Drug not found. Try the generic name (e.g., "ibuprofen" instead of "Advil").</div>`;
+  } else {
+    const { total, serious, reactions, outcomes, sexData, ageData } = data;
+    const nonSerious = total - serious;
+    const seriousPct = total > 0 ? ((serious / total) * 100).toFixed(1) : 0;
+    const seriousW = total > 0 ? (serious / total * 100).toFixed(1) : 0;
+    const nonSeriousW = 100 - parseFloat(seriousW);
+
+    // Tabs content
+    const reactionsHtml = buildReactionsTab(reactions, dot);
+    const outcomesHtml = buildOutcomesTab(outcomes);
+    const demoHtml = buildDemoTab(sexData, ageData, dot);
+
+    body = `
+      <div class="metrics-row">
+        <div class="metric-box"><div class="metric-val">${fmtNum(total)}</div><div class="metric-lbl">Total Reports</div></div>
+        <div class="metric-box"><div class="metric-val">${fmtNum(serious)}</div><div class="metric-lbl">Serious Events</div></div>
+        <div class="metric-box"><div class="metric-val">${seriousPct}%</div><div class="metric-lbl">Serious %</div></div>
+      </div>
+      <div class="severity-bar">
+        <div class="sev-serious" style="width:${seriousW}%"></div>
+        <div class="sev-nonserious" style="width:${nonSeriousW}%"></div>
+      </div>
+      <div class="severity-legend">
+        <span><span class="legend-dot" style="background:#f4a7b9"></span>Serious</span>
+        <span><span class="legend-dot" style="background:#a5d6a7"></span>Non-serious</span>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('${cardId}','reactions',this)">Reactions</button>
+        <button class="tab-btn" onclick="switchTab('${cardId}','outcomes',this)">Outcomes</button>
+        <button class="tab-btn" onclick="switchTab('${cardId}','demographics',this)">Demographics</button>
+      </div>
+      <div id="${cardId}-reactions" class="tab-pane active">${reactionsHtml}</div>
+      <div id="${cardId}-outcomes" class="tab-pane">${outcomesHtml}</div>
+      <div id="${cardId}-demographics" class="tab-pane">${demoHtml}</div>
+    `;
+  }
+
+  return `
+    <div class="drug-card" id="${cardId}">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="dot" style="background:${dot};width:12px;height:12px;border-radius:50%;display:inline-block;"></span>
+          <span class="drug-name">${name}</span>
+        </div>
+        <button class="btn-remove" onclick="removeDrug('${cardId}')" title="Remove">✕</button>
+      </div>
+      ${body}
+    </div>`;
+}
+
+function buildReactionsTab(reactions, dot) {
+  if (!reactions.length) return '<div class="loading-state" style="padding:1rem">No reaction data available.</div>';
+  const max = reactions[0].count;
+  return reactions.map(r => `
+    <div class="reaction-item">
+      <div class="reaction-name" title="${r.term}">${r.term.toLowerCase()}</div>
+      <div class="reaction-track"><div class="reaction-fill" style="width:${(r.count/max*100).toFixed(1)}%;background:${dot}"></div></div>
+      <div class="reaction-count">${fmtNum(r.count)}</div>
+    </div>`).join('');
+}
+
+function buildOutcomesTab(outcomes) {
+  if (!outcomes.length) return '<div class="loading-state" style="padding:1rem">No outcome data available.</div>';
+  return `<div class="outcomes-grid">${outcomes.map(o => {
+    const label = OUTCOME_LABELS[o.term] || `Code ${o.term}`;
+    const style = OUTCOME_COLORS[o.term] || 'background:#e2e3e5;color:#383d41';
+    return `<div class="outcome-badge" style="${style}">${label} <span class="outcome-count">(${fmtNum(o.count)})</span></div>`;
+  }).join('')}</div>`;
+}
+
+function buildDemoTab(sexData, ageData, dot) {
+  const SEX_LABELS = {0:'Unknown',1:'Male',2:'Female'};
+  const SEX_COLORS = {0:'#c5aee8',1:'#90caf9',2:'#f4a7b9'};
+
+  let sexHtml = '';
+  if (sexData.length) {
+    const maxS = Math.max(...sexData.map(s => s.count));
+    sexHtml = `<div class="demo-section">
+      <div class="demo-title">Sex Distribution</div>
+      ${sexData.map(s => `
+        <div class="reaction-item">
+          <div class="reaction-name">${SEX_LABELS[s.term] || s.term}</div>
+          <div class="reaction-track"><div class="reaction-fill" style="width:${(s.count/maxS*100).toFixed(1)}%;background:${SEX_COLORS[s.term]||dot}"></div></div>
+          <div class="reaction-count">${fmtNum(s.count)}</div>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  let ageHtml = '';
+  if (ageData.length) {
+    const maxA = Math.max(...ageData.map(a => a.count));
+    ageHtml = `<div class="demo-section">
+      <div class="demo-title">Age Groups</div>
+      ${ageData.map(a => `
+        <div class="reaction-item">
+          <div class="reaction-name">${AGE_LABELS[a.term] || `Group ${a.term}`}</div>
+          <div class="reaction-track"><div class="reaction-fill" style="width:${(a.count/maxA*100).toFixed(1)}%;background:${dot}"></div></div>
+          <div class="reaction-count">${fmtNum(a.count)}</div>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  return sexHtml + ageHtml || '<div class="loading-state" style="padding:1rem">No demographic data available.</div>';
+}
+
+function switchTab(cardId, tab, btn) {
+  ['reactions','outcomes','demographics'].forEach(t => {
+    document.getElementById(`${cardId}-${t}`)?.classList.toggle('active', t === tab);
+  });
+  btn.closest('.tabs').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function renderCompare() {
+  const sec = document.getElementById('compareSection');
+  const loaded = drugs.filter(d => d.data);
+  if (loaded.length < 2) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+
+  const maxTotal = Math.max(...loaded.map(d => d.data.total));
+  const maxSerious = Math.max(...loaded.map(d => d.data.serious));
+  const maxPct = Math.max(...loaded.map(d => d.data.total > 0 ? d.data.serious / d.data.total * 100 : 0));
+
+  function barRows(vals, max, color) {
+    return vals.map((d, i) => `
+      <div class="compare-bar-row">
+        <div class="compare-bar-label"><span class="dot" style="background:${DOT_COLORS[d.colorIdx]}"></span>${d.name}</div>
+        <div class="compare-bar-track"><div class="compare-bar-fill" style="width:${max>0?(vals[i].val/max*100).toFixed(1):0}%;background:${color}"></div></div>
+        <div class="compare-bar-val">${fmtNum(vals[i].val)}</div>
+      </div>`).join('');
+  }
+
+  sec.innerHTML = `
+    <div class="compare-card">
+      <h2>Side-by-Side Comparison</h2>
+      <div class="compare-group">
+        <div class="compare-label">Total Reports</div>
+        ${barRows(loaded.map(d=>({...d,val:d.data.total})), maxTotal, '#90caf9')}
+      </div>
+      <div class="compare-group">
+        <div class="compare-label">Serious Events</div>
+        ${barRows(loaded.map(d=>({...d,val:d.data.serious})), maxSerious, '#f4a7b9')}
+      </div>
+      <div class="compare-group">
+        <div class="compare-label">Serious %</div>
+        ${barRows(loaded.map(d=>({...d,val:d.data.total>0?parseFloat((d.data.serious/d.data.total*100).toFixed(1)):0})), maxPct, '#ffcc80')}
+      </div>
+    </div>`;
+}
+
+// Enter key support
+document.getElementById('drugInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addDrug();
+});
+
+// Pre-load on startup
+window.addEventListener('DOMContentLoaded', () => {
+  addDrug('Warfarin');
+  addDrug('Ibuprofen');
+});
+</script>
+</body>
+</html>
