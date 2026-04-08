@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Switchboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0a0a0a;
+      --bg2:         #111111;
+      --bg3:         #1a1a1a;
+      --border:      #2a2a2a;
+      --green:       #00cc66;
+      --green-dim:   #009944;
+      --green-dark:  #001a0d;
+      --red:         #cc3333;
+      --text:        #cccccc;
+      --text-dim:    #555555;
+      --mono:        'IBM Plex Mono', monospace;
+      --sans:        'IBM Plex Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ──────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 16px;
+      height: 48px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--green);
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+
+    .tabs { display: flex; gap: 3px; }
+
+    .tab {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      padding: 4px 14px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab:hover { color: var(--text); border-color: #444; }
+    .tab.active { background: var(--green-dark); color: var(--green); border-color: var(--green-dim); }
+
+    .pills { display: flex; gap: 6px; margin-left: auto; }
+
+    .pill {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 2px 9px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--text-dim);
+    }
+    .pill.key-set { color: var(--green); border-color: var(--green-dim); background: var(--green-dark); }
+    .pill.bad-key { color: var(--red); border-color: #660000; background: #1a0000; }
+
+    /* ── LAYOUT ──────────────────────────────────────────── */
+    .layout { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── SIDEBAR ─────────────────────────────────────────── */
+    aside {
+      width: 244px;
+      flex-shrink: 0;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .section { padding: 11px 12px; border-bottom: 1px solid var(--border); }
+
+    .section-title {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 9px;
+    }
+
+    label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-bottom: 3px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    select,
+    textarea {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 5px 8px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--green-dim); }
+    select option { background: var(--bg3); }
+    textarea { resize: vertical; }
+
+    .key-row { display: flex; gap: 4px; margin-bottom: 8px; }
+    .key-row input { flex: 1; min-width: 0; }
+
+    .btn-icon {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 0 8px;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .btn-icon:hover { color: var(--text); border-color: #444; }
+
+    .drop-zone {
+      border: 1px dashed var(--border);
+      padding: 8px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: var(--green-dim);
+      color: var(--green);
+      background: var(--green-dark);
+    }
+
+    .spaced { margin-bottom: 8px; }
+
+    .slider-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+    .slider-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--green);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      padding: 0;
+      accent-color: var(--green);
+      cursor: pointer;
+      margin-bottom: 8px;
+      background: transparent;
+      border: none;
+    }
+
+    /* toggle switch */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .toggle-label { font-size: 12px; color: var(--text); }
+    .toggle-wrap {
+      position: relative;
+      width: 38px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .toggle-wrap input[type="checkbox"] {
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      cursor: pointer;
+      z-index: 1;
+      margin: 0;
+      padding: 0;
+    }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+      pointer-events: none;
+    }
+    .toggle-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 12px;
+      height: 12px;
+      background: var(--text-dim);
+      transition: all 0.2s;
+      pointer-events: none;
+    }
+    .toggle-wrap input:checked ~ .toggle-track { background: var(--green-dark); border-color: var(--green-dim); }
+    .toggle-wrap input:checked ~ .toggle-thumb { left: 21px; background: var(--green); }
+
+    .example-btn {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 5px 8px;
+      cursor: pointer;
+      margin-bottom: 4px;
+      transition: all 0.15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .example-btn:hover { color: var(--green); border-color: var(--green-dim); background: var(--green-dark); }
+
+    .btn-clear {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      padding: 7px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.15s;
+    }
+    .btn-clear:hover { color: var(--red); border-color: #660000; background: #1a0000; }
+
+    /* ── MAIN ────────────────────────────────────────────── */
+    main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    #chat-view,
+    #compare-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* messages */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .msg { max-width: 820px; }
+
+    .msg-role {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .msg-role.user      { color: var(--green-dim); }
+    .msg-role.assistant { color: var(--text-dim); }
+
+    .msg-body {
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text);
+    }
+    .msg-body.json-ok  { color: var(--green); }
+    .msg-body.json-err { color: var(--red); }
+
+    .msg-error {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--red);
+      background: #1a0000;
+      border: 1px solid #660000;
+      padding: 8px 12px;
+    }
+
+    .thinking {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* token bar */
+    .token-bar {
+      padding: 5px 14px;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .token-bar .val { color: var(--green); }
+
+    /* input bar */
+    .input-bar {
+      border-top: 1px solid var(--border);
+      padding: 10px 12px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    #chat-input,
+    #compare-input {
+      flex: 1;
+      min-height: 40px;
+      max-height: 120px;
+      resize: none;
+      font-size: 13px;
+      line-height: 1.5;
+      font-family: var(--mono);
+    }
+
+    .btn-send {
+      background: var(--green-dark);
+      border: 1px solid var(--green-dim);
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      padding: 0 18px;
+      height: 40px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-send:hover { background: var(--green); color: #000; }
+    .btn-send:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── COMPARE ─────────────────────────────────────────── */
+    .compare-cols {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .compare-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+    .compare-col:last-child { border-right: none; }
+
+    .compare-col-header {
+      padding: 7px 12px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .compare-col-header .model-lbl { color: var(--green); font-weight: 600; }
+    .compare-col-header .provider-lbl { color: var(--text-dim); font-size: 10px; }
+
+    .compare-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text);
+    }
+    .compare-content.empty   { color: var(--text-dim); font-style: italic; }
+    .compare-content.loading { color: var(--text-dim); animation: blink 1s step-end infinite; }
+    .compare-content.error   { color: var(--red); }
+
+    .compare-meta {
+      padding: 5px 12px;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+    .compare-meta .val { color: var(--green); }
+
+    /* util */
+    .hidden { display: none !important; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); }
+    ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+    #file-upload { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ HEADER ═══════════════════════════════════ -->
+<header>
+  <div class="logo">◈ LLM SWITCHBOARD</div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('chat')">CHAT</button>
+    <button class="tab"        onclick="switchTab('compare')">COMPARE</button>
+  </div>
+  <div class="pills">
+    <div class="pill" id="pill-oai">OAI: NO KEY</div>
+    <div class="pill" id="pill-ant">ANT: NO KEY</div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════ LAYOUT ═══════════════════════════════════ -->
+<div class="layout">
+
+  <!-- ─────────────────────────── SIDEBAR ────────────────────────────────── -->
+  <aside>
+
+    <!-- API Keys -->
+    <div class="section">
+      <div class="section-title">API Keys</div>
+
+      <label>OpenAI Key</label>
+      <div class="key-row">
+        <input type="password" id="oai-key" placeholder="sk-..." oninput="updateKeyStatus()">
+        <button class="btn-icon" onclick="toggleShow('oai-key', this)">show</button>
+      </div>
+
+      <label>Anthropic Key</label>
+      <div class="key-row">
+        <input type="password" id="ant-key" placeholder="sk-ant-..." oninput="updateKeyStatus()">
+        <button class="btn-icon" onclick="toggleShow('ant-key', this)">show</button>
+      </div>
+
+      <div class="drop-zone" id="drop-zone"
+           onclick="document.getElementById('file-upload').click()"
+           ondragover="onDragOver(event)"
+           ondragleave="onDragLeave(event)"
+           ondrop="onDrop(event)">
+        drop .env or .csv &middot; click to browse
+      </div>
+      <input type="file" id="file-upload" accept=".env,.csv,.txt" onchange="onFileSelect(event)">
+    </div>
+
+    <!-- Provider & Model (chat only) -->
+    <div class="section" id="chat-controls">
+      <div class="section-title">Provider &amp; Model</div>
+      <label>Provider</label>
+      <select id="provider" onchange="updateModelDropdown()" class="spaced"></select>
+      <label>Model</label>
+      <select id="model"></select>
+    </div>
+
+    <!-- Parameters -->
+    <div class="section">
+      <div class="section-title">Parameters</div>
+
+      <div class="slider-label-row">
+        <label style="margin:0">Temperature</label>
+        <span class="slider-val" id="temp-val">0.70</span>
+      </div>
+      <input type="range" id="temp" min="0" max="2" step="0.01" value="0.7"
+             oninput="document.getElementById('temp-val').textContent=parseFloat(this.value).toFixed(2)">
+
+      <div class="slider-label-row">
+        <label style="margin:0">Max Tokens</label>
+        <span class="slider-val" id="tok-val">1024</span>
+      </div>
+      <input type="range" id="max-tokens" min="64" max="4096" step="64" value="1024"
+             oninput="document.getElementById('tok-val').textContent=this.value">
+
+      <label>System Prompt</label>
+      <textarea id="system-prompt" rows="3">You are a helpful assistant.</textarea>
+    </div>
+
+    <!-- Output Mode -->
+    <div class="section">
+      <div class="section-title">Output Mode</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Structured JSON</span>
+        <div class="toggle-wrap">
+          <input type="checkbox" id="json-mode" onchange="toggleJsonMode()">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>
+      <div id="schema-area" class="hidden">
+        <label>JSON Schema (optional)</label>
+        <textarea id="json-schema" rows="3" placeholder='{"name":"string","age":"number"}'></textarea>
+      </div>
+    </div>
+
+    <!-- Examples -->
+    <div class="section">
+      <div class="section-title">Examples</div>
+      <button class="example-btn" onclick="loadExample(0)">1. Summarize a news article</button>
+      <button class="example-btn" onclick="loadExample(1)">2. Extract JSON from text</button>
+      <button class="example-btn" onclick="loadExample(2)">3. Write a Python function</button>
+      <button class="example-btn" onclick="loadExample(3)">4. Explain a concept simply</button>
+      <button class="example-btn" onclick="loadExample(4)">5. Compare two options</button>
+    </div>
+
+    <!-- Compare model selectors (compare mode only) -->
+    <div class="section hidden" id="compare-controls">
+      <div class="section-title">Compare Models</div>
+      <label>Model A</label>
+      <select id="model-a" class="spaced"></select>
+      <label>Model B</label>
+      <select id="model-b"></select>
+    </div>
+
+    <!-- Clear -->
+    <div class="section">
+      <button class="btn-clear" onclick="clearConversation()">Clear Conversation</button>
+    </div>
+
+  </aside>
+
+  <!-- ──────────────────────────── MAIN ───────────────────────────────────── -->
+  <main>
+
+    <!-- CHAT VIEW -->
+    <div id="chat-view">
+      <div class="messages" id="messages">
+        <div style="color:var(--text-dim);font-family:var(--mono);font-size:12px;">
+          Enter an API key in the sidebar and start chatting.
+        </div>
+      </div>
+      <div class="token-bar" id="token-bar">
+        <span>prompt: <span class="val" id="tb-prompt">—</span></span>
+        <span>completion: <span class="val" id="tb-completion">—</span></span>
+        <span>total: <span class="val" id="tb-total">—</span></span>
+        <span>model: <span class="val" id="tb-model">—</span></span>
+      </div>
+      <div class="input-bar">
+        <textarea id="chat-input"
+                  placeholder="Type a message… (Enter to send, Shift+Enter for newline)"
+                  onkeydown="onChatKey(event)"></textarea>
+        <button class="btn-send" id="btn-send" onclick="sendChat()">SEND</button>
+      </div>
+    </div>
+
+    <!-- COMPARE VIEW -->
+    <div id="compare-view" class="hidden">
+      <div class="compare-cols">
+
+        <div class="compare-col">
+          <div class="compare-col-header">
+            <span class="model-lbl" id="col-a-model">Model A</span>
+            <span class="provider-lbl" id="col-a-provider"></span>
+          </div>
+          <div class="compare-content empty" id="col-a-content">Waiting for prompt…</div>
+          <div class="compare-meta" id="col-a-footer">tokens: — &middot; time: —</div>
+        </div>
+
+        <div class="compare-col">
+          <div class="compare-col-header">
+            <span class="model-lbl" id="col-b-model">Model B</span>
+            <span class="provider-lbl" id="col-b-provider"></span>
+          </div>
+          <div class="compare-content empty" id="col-b-content">Waiting for prompt…</div>
+          <div class="compare-meta" id="col-b-footer">tokens: — &middot; time: —</div>
+        </div>
+
+      </div>
+      <div class="input-bar">
+        <textarea id="compare-input"
+                  placeholder="Type a prompt to compare both models… (Enter to send)"
+                  onkeydown="onCompareKey(event)"></textarea>
+        <button class="btn-send" id="btn-compare" onclick="sendCompare()">COMPARE</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════════════════════ SCRIPT ═══════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+
+const PROVIDERS = {
+  openai: {
+    label: 'OpenAI',
+    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1-mini'],
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    keyPrefix: 'sk-'
+  },
+  anthropic: {
+    label: 'Anthropic',
+    models: ['claude-opus-4-5', 'claude-sonnet-4-5', 'claude-haiku-4-5'],
+    endpoint: 'https://api.anthropic.com/v1/messages',
+    keyPrefix: 'sk-ant-'
+  }
+};
+
+// Flat list for compare dropdowns
+const ALL_MODEL_OPTIONS = Object.entries(PROVIDERS).flatMap(([pid, p]) =>
+  p.models.map(m => ({ value: `${pid}|${m}`, label: `${p.label} / ${m}`, provider: pid, model: m }))
+);
+
+const EXAMPLES = [
+  {
+    prompt: 'Summarize the following news article in 3 concise bullet points:\n\n[Paste article text here]',
+    json: false,
+    schema: ''
+  },
+  {
+    prompt: 'Extract information from this text and return it as JSON:\n\n"Jane Smith is 34 years old, lives in Austin, and works as a software engineer."',
+    json: true,
+    schema: '{"name":"string","age":"number","city":"string","occupation":"string"}'
+  },
+  {
+    prompt: 'Write a Python function that takes a list of integers and returns a new list with duplicates removed, preserving the original order.',
+    json: false,
+    schema: ''
+  },
+  {
+    prompt: 'Explain how garbage collection works in programming languages, as if I were a complete beginner.',
+    json: false,
+    schema: ''
+  },
+  {
+    prompt: 'Compare the pros and cons of using PostgreSQL vs MongoDB for a new web application backend.',
+    json: false,
+    schema: ''
+  }
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let chatHistory = []; // [{role, content}]
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+function init() {
+  // Provider dropdown
+  const provSel = document.getElementById('provider');
+  Object.entries(PROVIDERS).forEach(([pid, p]) => {
+    const o = document.createElement('option');
+    o.value = pid; o.textContent = p.label;
+    provSel.appendChild(o);
+  });
+  updateModelDropdown();
+
+  // Compare dropdowns
+  ['model-a', 'model-b'].forEach((id, i) => {
+    const sel = document.getElementById(id);
+    ALL_MODEL_OPTIONS.forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt.value; o.textContent = opt.label;
+      sel.appendChild(o);
+    });
+    // Default: A = gpt-4o, B = first Anthropic model
+    if (i === 1) {
+      const idx = ALL_MODEL_OPTIONS.findIndex(o => o.provider === 'anthropic');
+      if (idx >= 0) sel.selectedIndex = idx;
+    }
+  });
+}
+
+function updateModelDropdown() {
+  const pid = document.getElementById('provider').value;
+  const sel = document.getElementById('model');
+  sel.innerHTML = '';
+  PROVIDERS[pid].models.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m; o.textContent = m;
+    sel.appendChild(o);
+  });
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+
+function switchTab(tab) {
+  const isChat = tab === 'chat';
+  document.getElementById('chat-view').classList.toggle('hidden', !isChat);
+  document.getElementById('compare-view').classList.toggle('hidden', isChat);
+  document.getElementById('chat-controls').classList.toggle('hidden', !isChat);
+  document.getElementById('compare-controls').classList.toggle('hidden', isChat);
+  document.querySelectorAll('.tab').forEach((t, i) =>
+    t.classList.toggle('active', isChat ? i === 0 : i === 1)
+  );
+}
+
+// ── API Key management ────────────────────────────────────────────────────────
+
+function toggleShow(inputId, btn) {
+  const el = document.getElementById(inputId);
+  const showing = el.type === 'text';
+  el.type = showing ? 'password' : 'text';
+  btn.textContent = showing ? 'show' : 'hide';
+}
+
+function getKey(provider) {
+  return provider === 'openai'
+    ? document.getElementById('oai-key').value.trim()
+    : document.getElementById('ant-key').value.trim();
+}
+
+function updateKeyStatus() {
+  setPill('pill-oai', 'OAI', document.getElementById('oai-key').value.trim(), PROVIDERS.openai.keyPrefix);
+  setPill('pill-ant', 'ANT', document.getElementById('ant-key').value.trim(), PROVIDERS.anthropic.keyPrefix);
+}
+
+function setPill(id, label, key, prefix) {
+  const pill = document.getElementById(id);
+  if (!key) {
+    pill.textContent = `${label}: NO KEY`;
+    pill.className = 'pill';
+  } else if (key.startsWith(prefix)) {
+    pill.textContent = `${label}: KEY SET`;
+    pill.className = 'pill key-set';
+  } else {
+    pill.textContent = `${label}: BAD KEY`;
+    pill.className = 'pill bad-key';
+  }
+}
+
+// ── File upload ───────────────────────────────────────────────────────────────
+
+function onDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function onDragLeave()  { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function onDrop(e)      { e.preventDefault(); onDragLeave(); const f = e.dataTransfer.files[0]; if (f) parseKeyFile(f); }
+function onFileSelect(e){ const f = e.target.files[0]; if (f) parseKeyFile(f); e.target.value = ''; }
+
+function parseKeyFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const lines = ev.target.result.split(/[\r\n]+/);
+    lines.forEach(raw => {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) return;
+
+      let key = '', val = '';
+      if (line.includes('=')) {
+        const eq = line.indexOf('=');
+        key = line.slice(0, eq);
+        val = line.slice(eq + 1);
+      } else if (line.includes(',')) {
+        [key, val] = line.split(',');
+      }
+
+      key = key.trim().toLowerCase().replace(/["']/g, '');
+      val = val.trim().replace(/["']/g, '');
+
+      if (key.includes('openai'))    document.getElementById('oai-key').value = val;
+      if (key.includes('anthropic')) document.getElementById('ant-key').value = val;
+    });
+    updateKeyStatus();
+  };
+  reader.readAsText(file);
+}
+
+// ── Output mode ───────────────────────────────────────────────────────────────
+
+function toggleJsonMode() {
+  const on = document.getElementById('json-mode').checked;
+  document.getElementById('schema-area').classList.toggle('hidden', !on);
+}
+
+// ── Examples ──────────────────────────────────────────────────────────────────
+
+function loadExample(idx) {
+  const ex = EXAMPLES[idx];
+  document.getElementById('chat-input').value = ex.prompt;
+  document.getElementById('json-mode').checked = ex.json;
+  toggleJsonMode();
+  if (ex.schema) document.getElementById('json-schema').value = ex.schema;
+}
+
+// ── Clear ─────────────────────────────────────────────────────────────────────
+
+function clearConversation() {
+  chatHistory = [];
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '<div style="color:var(--text-dim);font-family:var(--mono);font-size:12px;">Conversation cleared.</div>';
+  resetTokenBar();
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+
+function onChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+async function sendChat() {
+  const inputEl = document.getElementById('chat-input');
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  const provider = document.getElementById('provider').value;
+  const model    = document.getElementById('model').value;
+  const key      = getKey(provider);
+
+  if (!key) { showError(`No API key set for ${PROVIDERS[provider].label}.`); return; }
+
+  inputEl.value = '';
+  chatHistory.push({ role: 'user', content: text });
+  appendMsg('user', text);
+
+  const thinking = appendThinking();
+  document.getElementById('btn-send').disabled = true;
+
+  try {
+    const result = await callLLM(provider, model, key, chatHistory);
+    thinking.remove();
+    chatHistory.push({ role: 'assistant', content: result.content });
+
+    if (document.getElementById('json-mode').checked) {
+      appendJsonMsg(result.content);
+    } else {
+      appendMsg('assistant', result.content);
+    }
+
+    setTokenBar(result.usage, model);
+  } catch (err) {
+    thinking.remove();
+    showError(err.message);
+  } finally {
+    document.getElementById('btn-send').disabled = false;
+  }
+}
+
+// ── Compare ───────────────────────────────────────────────────────────────────
+
+function onCompareKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCompare(); }
+}
+
+async function sendCompare() {
+  const text = document.getElementById('compare-input').value.trim();
+  if (!text) return;
+
+  const selA = parseModelOption(document.getElementById('model-a').value);
+  const selB = parseModelOption(document.getElementById('model-b').value);
+
+  setCompareCol('a', selA, 'loading');
+  setCompareCol('b', selB, 'loading');
+
+  document.getElementById('btn-compare').disabled = true;
+
+  const run = async sel => {
+    const key = getKey(sel.provider);
+    if (!key) throw new Error(`No API key for ${PROVIDERS[sel.provider].label}`);
+    const t0  = Date.now();
+    const res = await callLLM(sel.provider, sel.model, key, [{ role: 'user', content: text }]);
+    res.elapsed = ((Date.now() - t0) / 1000).toFixed(2) + 's';
+    return res;
+  };
+
+  const [rA, rB] = await Promise.allSettled([run(selA), run(selB)]);
+  renderCompareCol('a', rA);
+  renderCompareCol('b', rB);
+
+  document.getElementById('btn-compare').disabled = false;
+}
+
+function parseModelOption(val) {
+  const [provider, model] = val.split('|');
+  return { provider, model };
+}
+
+function setCompareCol(col, sel, state) {
+  document.getElementById(`col-${col}-model`).textContent    = sel.model;
+  document.getElementById(`col-${col}-provider`).textContent = PROVIDERS[sel.provider]?.label ?? sel.provider;
+  const content = document.getElementById(`col-${col}-content`);
+  content.textContent = state === 'loading' ? '…' : 'Waiting for prompt…';
+  content.className   = `compare-content ${state}`;
+  document.getElementById(`col-${col}-footer`).textContent = 'tokens: — · time: —';
+}
+
+function renderCompareCol(col, result) {
+  const content = document.getElementById(`col-${col}-content`);
+  const footer  = document.getElementById(`col-${col}-footer`);
+  if (result.status === 'fulfilled') {
+    const { content: text, usage, elapsed } = result.value;
+    content.textContent = text;
+    content.className   = 'compare-content';
+    footer.innerHTML    = `tokens: <span class="val">${usage?.total ?? '—'}</span> &middot; time: <span class="val">${elapsed}</span>`;
+  } else {
+    content.textContent = 'Error: ' + (result.reason?.message || 'Unknown error');
+    content.className   = 'compare-content error';
+    footer.textContent  = 'failed';
+  }
+}
+
+// ── LLM calls ─────────────────────────────────────────────────────────────────
+
+function buildSystemPrompt() {
+  let sys = document.getElementById('system-prompt').value.trim() || 'You are a helpful assistant.';
+  if (document.getElementById('json-mode').checked) {
+    sys += '\n\nRespond only with valid JSON. Do not use markdown code fences or any other formatting — output raw JSON only.';
+    const schema = document.getElementById('json-schema').value.trim();
+    if (schema) sys += `\n\nYour response must conform to this JSON schema:\n${schema}`;
+  }
+  return sys;
+}
+
+async function callLLM(provider, model, key, messages) {
+  const temperature = parseFloat(document.getElementById('temp').value);
+  const maxTokens   = parseInt(document.getElementById('max-tokens').value);
+  const systemPrompt = buildSystemPrompt();
+  const jsonMode    = document.getElementById('json-mode').checked;
+
+  return provider === 'openai'
+    ? callOpenAI(model, key, messages, systemPrompt, temperature, maxTokens, jsonMode)
+    : callAnthropic(model, key, messages, systemPrompt, temperature, maxTokens);
+}
+
+async function callOpenAI(model, key, messages, systemPrompt, temperature, maxTokens, jsonMode) {
+  const body = {
+    model,
+    messages: [{ role: 'system', content: systemPrompt }, ...messages],
+    max_tokens: maxTokens
+  };
+
+  // o1-mini does not support temperature or system role — handle gracefully
+  const isO1 = model.startsWith('o1');
+  if (!isO1) body.temperature = temperature;
+  if (isO1)  body.messages    = messages; // drop system message for o1
+
+  if (jsonMode && !isO1) body.response_format = { type: 'json_object' };
+
+  const res  = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || `OpenAI HTTP ${res.status}`);
+
+  return {
+    content: data.choices[0].message.content,
+    usage: {
+      prompt:     data.usage.prompt_tokens,
+      completion: data.usage.completion_tokens,
+      total:      data.usage.total_tokens
+    }
+  };
+}
+
+async function callAnthropic(model, key, messages, systemPrompt, temperature, maxTokens) {
+  const body = {
+    model,
+    max_tokens: maxTokens,
+    temperature,
+    system: systemPrompt,
+    messages: messages.map(m => ({ role: m.role, content: m.content }))
+  };
+
+  const res  = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || `Anthropic HTTP ${res.status}`);
+
+  return {
+    content: data.content[0].text,
+    usage: {
+      prompt:     data.usage.input_tokens,
+      completion: data.usage.output_tokens,
+      total:      data.usage.input_tokens + data.usage.output_tokens
+    }
+  };
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+
+function appendMsg(role, text) {
+  const msgs = document.getElementById('messages');
+  const div  = document.createElement('div');
+  div.className = 'msg';
+
+  const roleEl = document.createElement('div');
+  roleEl.className = `msg-role ${role}`;
+  roleEl.textContent = role === 'user' ? '▶ YOU' : '◈ ASSISTANT';
+
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+  body.textContent = text;
+
+  div.appendChild(roleEl);
+  div.appendChild(body);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function appendJsonMsg(text) {
+  const msgs = document.getElementById('messages');
+  const div  = document.createElement('div');
+  div.className = 'msg';
+
+  const roleEl = document.createElement('div');
+  roleEl.className = 'msg-role assistant';
+  roleEl.textContent = '◈ ASSISTANT';
+
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+  try {
+    body.textContent = JSON.stringify(JSON.parse(text), null, 2);
+    body.classList.add('json-ok');
+  } catch {
+    body.textContent = '⚠ Invalid JSON:\n\n' + text;
+    body.classList.add('json-err');
+  }
+
+  div.appendChild(roleEl);
+  div.appendChild(body);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function appendThinking() {
+  const msgs = document.getElementById('messages');
+  const div  = document.createElement('div');
+  div.className = 'thinking';
+  div.textContent = '◈ thinking…';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function showError(msg) {
+  const msgs = document.getElementById('messages');
+  const div  = document.createElement('div');
+  div.className = 'msg-error';
+  div.textContent = '✖ ' + msg;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function setTokenBar(usage, model) {
+  document.getElementById('tb-prompt').textContent     = usage?.prompt     ?? '—';
+  document.getElementById('tb-completion').textContent = usage?.completion ?? '—';
+  document.getElementById('tb-total').textContent      = usage?.total      ?? '—';
+  document.getElementById('tb-model').textContent      = model             ?? '—';
+}
+
+function resetTokenBar() {
+  ['tb-prompt','tb-completion','tb-total','tb-model'].forEach(id =>
+    document.getElementById(id).textContent = '—'
+  );
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
