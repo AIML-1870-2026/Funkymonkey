@@ -1,5 +1,5 @@
 /* ── STATE ─────────────────────────────────────────────────── */
-let anthropicKey = 'PASTE_YOUR_KEY_HERE';
+let anthropicKey = '';
 
 /* ── DOM REFS ──────────────────────────────────────────────── */
 
@@ -26,12 +26,12 @@ const tokenInfo      = document.getElementById('token-info');
 function updateKeyPill(val) {
   keyPill.classList.remove('key-set', 'bad-key', 'flash');
   if (!val) {
-    keyPill.textContent = 'ANT: NO KEY';
-  } else if (val.startsWith('sk-ant-') && val.length > 20) {
-    keyPill.textContent = 'ANT: KEY SET';
+    keyPill.textContent = 'OAI: NO KEY';
+  } else if (val.startsWith('sk-') && val.length > 20) {
+    keyPill.textContent = 'OAI: KEY SET';
     keyPill.classList.add('key-set');
   } else {
-    keyPill.textContent = 'ANT: BAD KEY';
+    keyPill.textContent = 'OAI: BAD KEY';
     keyPill.classList.add('bad-key');
   }
 }
@@ -76,7 +76,7 @@ function parseEnvFile(file) {
       const eq  = line.indexOf('=');
       const key = line.slice(0, eq).trim().toLowerCase().replace(/["']/g, '');
       const val = line.slice(eq + 1).trim().replace(/["']/g, '');
-      if (key.includes('anthropic')) {
+      if (key.includes('openai')) {
         apiKeyInput.value = val;
         anthropicKey = val;
         updateKeyPill(val);
@@ -146,7 +146,7 @@ generateBtn.addEventListener('click', generate);
 
 async function generate() {
   // Validate key
-  if (!anthropicKey || !anthropicKey.startsWith('sk-ant-') || anthropicKey.length <= 20) {
+  if (!anthropicKey || !anthropicKey.startsWith('sk-') || anthropicKey.length <= 20) {
     keyPill.classList.remove('flash');
     void keyPill.offsetWidth; // reflow to restart animation
     keyPill.classList.add('flash');
@@ -175,19 +175,19 @@ async function generate() {
   placeholder.style.display = 'flex';
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'Authorization': `Bearer ${anthropicKey}`
       },
       body: JSON.stringify({
         model,
         max_tokens: 1024,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userMessage }]
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ]
       })
     });
 
@@ -198,14 +198,11 @@ async function generate() {
     }
 
     // Parse response
-    const reviewText = data.content
-      .filter(block => block.type === 'text')
-      .map(block => block.text)
-      .join('');
+    const reviewText = data.choices[0].message.content;
 
     const usage = data.usage || {};
-    const promptTokens     = usage.input_tokens  ?? '—';
-    const completionTokens = usage.output_tokens ?? '—';
+    const promptTokens     = usage.prompt_tokens     ?? '—';
+    const completionTokens = usage.completion_tokens ?? '—';
     const total = (typeof promptTokens === 'number' && typeof completionTokens === 'number')
       ? promptTokens + completionTokens
       : '—';
