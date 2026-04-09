@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REVIEWGEN</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <span class="logo">[ REVIEWGEN ]</span>
+    <span class="spacer"></span>
+    <span class="pill" id="key-pill">ANT: NO KEY</span>
+  </header>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside>
+      <div class="sidebar-scroll">
+
+        <section class="sidebar-section">
+          <div class="section-label">API KEY</div>
+          <div class="key-row">
+            <input type="password" id="api-key" class="key-input" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+            <button class="icon-btn" id="toggle-key" title="Show/hide key">👁</button>
+          </div>
+          <div class="drop-zone" id="drop-zone">drop .env · click to browse</div>
+          <input type="file" id="env-file-input" accept=".env,.txt" style="display:none">
+        </section>
+
+        <section class="sidebar-section">
+          <div class="section-label">MODEL</div>
+          <select id="model-select" class="select">
+            <option value="claude-haiku-4-5">claude-haiku-4-5</option>
+            <option value="claude-sonnet-4-5" selected>claude-sonnet-4-5</option>
+            <option value="claude-opus-4-5">claude-opus-4-5</option>
+          </select>
+        </section>
+
+        <section class="sidebar-section">
+          <div class="section-label">TONE</div>
+          <select id="tone-select" class="select">
+            <option value="balanced">Balanced</option>
+            <option value="enthusiastic">Enthusiastic</option>
+            <option value="critical">Critical</option>
+            <option value="professional">Professional</option>
+            <option value="casual">Casual</option>
+          </select>
+        </section>
+
+        <section class="sidebar-section">
+          <div class="section-label">LENGTH</div>
+          <select id="length-select" class="select">
+            <option value="short">Short (~100 words)</option>
+            <option value="medium" selected>Medium (~250 words)</option>
+            <option value="long">Long (~500 words)</option>
+          </select>
+        </section>
+
+        <section class="sidebar-section">
+          <div class="section-label">EXAMPLES</div>
+          <div class="examples-list">
+            <button class="example-btn" data-product="Sony WH-1000XM5 wireless noise-cancelling headphones" data-category="Electronics">🎧 Sony Headphones</button>
+            <button class="example-btn" data-product="Apple MacBook Air M3, 15-inch, 8GB RAM, 256GB SSD" data-category="Electronics">💻 MacBook Air M3</button>
+            <button class="example-btn" data-product="Instant Pot Duo 7-in-1 Electric Pressure Cooker, 6 quart" data-category="Kitchen">🍲 Instant Pot Duo</button>
+            <button class="example-btn" data-product="Levi's 501 Original Fit Men's Jeans in dark wash denim" data-category="Clothing">👖 Levi's 501 Jeans</button>
+            <button class="example-btn" data-product="Kindle Paperwhite 11th Gen, 8GB, waterproof, 6.8-inch display" data-category="Electronics">📚 Kindle Paperwhite</button>
+          </div>
+        </section>
+
+        <section class="sidebar-section sidebar-bottom">
+          <button class="clear-btn" id="clear-btn">[ CLEAR OUTPUT ]</button>
+        </section>
+
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main>
+
+      <!-- INPUT AREA -->
+      <div class="input-area">
+        <div class="input-row">
+          <div class="field field-name">
+            <label class="field-label" for="product-name">PRODUCT NAME</label>
+            <input type="text" id="product-name" class="text-input" placeholder="e.g. Sony WH-1000XM5" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field field-category">
+            <label class="field-label" for="category-select">CATEGORY</label>
+            <select id="category-select" class="select">
+              <option value="Electronics">Electronics</option>
+              <option value="Kitchen">Kitchen</option>
+              <option value="Clothing">Clothing</option>
+              <option value="Books">Books</option>
+              <option value="Sports & Outdoors">Sports &amp; Outdoors</option>
+              <option value="Home & Garden">Home &amp; Garden</option>
+              <option value="Beauty & Personal Care">Beauty &amp; Personal Care</option>
+              <option value="Toys & Games">Toys &amp; Games</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="comments">COMMENTS <span class="optional">(optional)</span></label>
+          <textarea id="comments" class="textarea" placeholder="Extra context, features, specific things to mention…" rows="3"></textarea>
+        </div>
+        <div class="input-actions">
+          <button class="generate-btn" id="generate-btn">GENERATE REVIEW</button>
+        </div>
+      </div>
+
+      <!-- OUTPUT AREA -->
+      <div class="output-area">
+        <div class="output-placeholder" id="output-placeholder">
+          <span class="placeholder-text">// review will appear here</span>
+        </div>
+        <div class="output-block" id="output-block" style="display:none">
+          <div class="output-meta" id="output-meta"></div>
+          <div class="output-text" id="output-text"></div>
+        </div>
+      </div>
+
+      <!-- TOKEN BAR -->
+      <div class="token-bar" id="token-bar">
+        <span id="token-info">PROMPT TOKENS: — &nbsp;·&nbsp; COMPLETION TOKENS: — &nbsp;·&nbsp; TOTAL: —</span>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
