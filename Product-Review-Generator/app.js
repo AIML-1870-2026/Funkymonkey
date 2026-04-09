@@ -1,5 +1,5 @@
 /* ── STATE ─────────────────────────────────────────────────── */
-let anthropicKey = '';
+let anthropicKey = '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';
 
 /* ── DOM REFS ──────────────────────────────────────────────── */
 
