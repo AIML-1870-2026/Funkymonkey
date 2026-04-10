@@ -7,8 +7,10 @@ const apiKeyInput    = document.getElementById('api-key');
 const toggleKeyBtn   = document.getElementById('toggle-key');
 const keyPill        = document.getElementById('key-pill');
 const modelSelect    = document.getElementById('model-select');
-const toneSelect     = document.getElementById('tone-select');
-const lengthSelect   = document.getElementById('length-select');
+const toneSlider     = document.getElementById('tone-select');
+const toneValue      = document.getElementById('tone-value');
+const lengthSlider   = document.getElementById('length-select');
+const lengthValue    = document.getElementById('length-value');
 const productInput   = document.getElementById('product-name');
 const categorySelect = document.getElementById('category-select');
 const commentsInput  = document.getElementById('comments');
@@ -47,6 +49,20 @@ apiKeyInput.addEventListener('input', () => {
 
 toggleKeyBtn.addEventListener('click', () => {
   apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+});
+
+/* ── SLIDER LABELS ─────────────────────────────────────────── */
+const toneLabels   = ['critical', 'professional', 'balanced', 'casual', 'enthusiastic'];
+const lengthLabels = ['short', 'medium', 'long'];
+
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+toneSlider.addEventListener('input', () => {
+  toneValue.textContent = capitalize(toneLabels[toneSlider.value]);
+});
+
+lengthSlider.addEventListener('input', () => {
+  lengthValue.textContent = capitalize(lengthLabels[lengthSlider.value]);
 });
 
 /* ── .ENV FILE LOADING ─────────────────────────────────────── */
@@ -121,8 +137,8 @@ const wordTargets = { short: 100, medium: 250, long: 500 };
 
 function buildPrompts() {
   const category = categorySelect.value;
-  const tone     = toneSelect.value;
-  const length   = lengthSelect.value;
+  const tone     = toneLabels[toneSlider.value];
+  const length   = lengthLabels[lengthSlider.value];
   const product  = productInput.value.trim();
   const comments = commentsInput.value.trim();
 
@@ -163,7 +179,7 @@ async function generate() {
   }
 
   const model    = modelSelect.value;
-  const tone     = toneSelect.value;
+  const tone     = toneLabels[toneSlider.value];
   const category = categorySelect.value;
   const { systemPrompt, userMessage } = buildPrompts();
 

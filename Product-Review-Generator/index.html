@@ -45,23 +45,31 @@
         </section>
 
         <section class="sidebar-section">
-          <div class="section-label">TONE</div>
-          <select id="tone-select" class="select">
-            <option value="balanced">Balanced</option>
-            <option value="enthusiastic">Enthusiastic</option>
-            <option value="critical">Critical</option>
-            <option value="professional">Professional</option>
-            <option value="casual">Casual</option>
-          </select>
+          <div class="section-label-row">
+            <span class="section-label">TONE</span>
+            <span class="slider-value" id="tone-value">Balanced</span>
+          </div>
+          <input type="range" id="tone-select" class="slider" min="0" max="4" value="2">
+          <div class="slider-ticks">
+            <span>Critical</span>
+            <span>Professional</span>
+            <span>Balanced</span>
+            <span>Casual</span>
+            <span>Enthusiastic</span>
+          </div>
         </section>
 
         <section class="sidebar-section">
-          <div class="section-label">LENGTH</div>
-          <select id="length-select" class="select">
-            <option value="short">Short (~100 words)</option>
-            <option value="medium" selected>Medium (~250 words)</option>
-            <option value="long">Long (~500 words)</option>
-          </select>
+          <div class="section-label-row">
+            <span class="section-label">LENGTH</span>
+            <span class="slider-value" id="length-value">Medium</span>
+          </div>
+          <input type="range" id="length-select" class="slider" min="0" max="2" value="1">
+          <div class="slider-ticks">
+            <span>Short</span>
+            <span>Medium</span>
+            <span>Long</span>
+          </div>
         </section>
 
         <section class="sidebar-section">
