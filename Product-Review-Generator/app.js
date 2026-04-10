@@ -7,10 +7,11 @@ const apiKeyInput    = document.getElementById('api-key');
 const toggleKeyBtn   = document.getElementById('toggle-key');
 const keyPill        = document.getElementById('key-pill');
 const modelSelect    = document.getElementById('model-select');
-const toneSlider     = document.getElementById('tone-select');
-const toneValue      = document.getElementById('tone-value');
-const lengthSlider   = document.getElementById('length-select');
-const lengthValue    = document.getElementById('length-value');
+const toneSelect      = document.getElementById('tone-select');
+const intensitySlider = document.getElementById('intensity-slider');
+const intensityValue  = document.getElementById('intensity-value');
+const lengthSlider    = document.getElementById('length-select');
+const lengthValue     = document.getElementById('length-value');
 const productInput   = document.getElementById('product-name');
 const categorySelect = document.getElementById('category-select');
 const commentsInput  = document.getElementById('comments');
@@ -52,13 +53,13 @@ toggleKeyBtn.addEventListener('click', () => {
 });
 
 /* ── SLIDER LABELS ─────────────────────────────────────────── */
-const toneLabels   = ['critical', 'professional', 'balanced', 'casual', 'enthusiastic'];
-const lengthLabels = ['short', 'medium', 'long'];
+const intensityLabels = ['slightly', 'moderately', 'strongly', 'extremely'];
+const lengthLabels    = ['short', 'medium', 'long'];
 
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
-toneSlider.addEventListener('input', () => {
-  toneValue.textContent = capitalize(toneLabels[toneSlider.value]);
+intensitySlider.addEventListener('input', () => {
+  intensityValue.textContent = capitalize(intensityLabels[intensitySlider.value]);
 });
 
 lengthSlider.addEventListener('input', () => {
@@ -133,18 +134,28 @@ const toneInstructions = {
   casual:        'Write a casual, conversational review as if recommending (or not) to a friend.'
 };
 
+const intensityModifiers = {
+  balanced:      ['mildly balanced', 'balanced', 'strongly balanced', 'strictly neutral and balanced'],
+  enthusiastic:  ['slightly enthusiastic', 'moderately enthusiastic', 'very enthusiastic', 'extremely enthusiastic and effusive'],
+  critical:      ['mildly critical', 'moderately critical', 'harshly critical', 'brutally and extremely critical'],
+  professional:  ['somewhat professional', 'professional', 'highly professional and formal', 'extremely formal and authoritative'],
+  casual:        ['slightly casual', 'moderately casual', 'very casual and relaxed', 'extremely casual and conversational']
+};
+
 const wordTargets = { short: 100, medium: 250, long: 500 };
 
 function buildPrompts() {
-  const category = categorySelect.value;
-  const tone     = toneLabels[toneSlider.value];
-  const length   = lengthLabels[lengthSlider.value];
-  const product  = productInput.value.trim();
-  const comments = commentsInput.value.trim();
+  const category  = categorySelect.value;
+  const tone      = toneSelect.value;
+  const intensity = parseInt(intensitySlider.value);
+  const length    = lengthLabels[lengthSlider.value];
+  const modifier  = intensityModifiers[tone][intensity];
+  const product   = productInput.value.trim();
+  const comments  = commentsInput.value.trim();
 
   const systemPrompt =
     `You are an expert product reviewer specialising in ${category}.\n` +
-    `${toneInstructions[tone]}\n` +
+    `${toneInstructions[tone]} Make the tone ${modifier}.\n` +
     `Aim for approximately ${wordTargets[length]} words.\n` +
     `Structure your review naturally: open with an overall impression, discuss key features, mention any notable pros and cons, and close with a recommendation.\n` +
     `Do not use markdown headers or bullet points — write in flowing prose only.`;
@@ -179,7 +190,7 @@ async function generate() {
   }
 
   const model    = modelSelect.value;
-  const tone     = toneLabels[toneSlider.value];
+  const tone     = toneSelect.value;
   const category = categorySelect.value;
   const { systemPrompt, userMessage } = buildPrompts();
 

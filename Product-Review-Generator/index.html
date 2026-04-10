@@ -45,17 +45,24 @@
         </section>
 
         <section class="sidebar-section">
-          <div class="section-label-row">
-            <span class="section-label">TONE</span>
-            <span class="slider-value" id="tone-value">Balanced</span>
+          <div class="section-label">TONE</div>
+          <select id="tone-select" class="select">
+            <option value="balanced">Balanced</option>
+            <option value="enthusiastic">Enthusiastic</option>
+            <option value="critical">Critical</option>
+            <option value="professional">Professional</option>
+            <option value="casual">Casual</option>
+          </select>
+          <div class="section-label-row" style="margin-top:10px">
+            <span class="section-label" style="margin:0">INTENSITY</span>
+            <span class="slider-value" id="intensity-value">Moderate</span>
           </div>
-          <input type="range" id="tone-select" class="slider" min="0" max="4" value="2">
+          <input type="range" id="intensity-slider" class="slider" min="0" max="3" value="1">
           <div class="slider-ticks">
-            <span>Critical</span>
-            <span>Professional</span>
-            <span>Balanced</span>
-            <span>Casual</span>
-            <span>Enthusiastic</span>
+            <span>Slight</span>
+            <span>Moderate</span>
+            <span>Strong</span>
+            <span>Extreme</span>
           </div>
         </section>
 
