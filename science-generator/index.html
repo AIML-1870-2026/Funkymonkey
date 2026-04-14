@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Science Experiment Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inconsolata:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #e8f5e9;
+      --surface: #f1faf2;
+      --border: #a5d6a7;
+      --accent: #2e7d32;
+      --accent-hover: #1b5e20;
+      --text: #1b3a1f;
+      --text-muted: #4a7a4e;
+      --danger: #c62828;
+      --bubble: #dcedc8;
+      --mono: 'Inconsolata', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      letter-spacing: -.02em;
+      color: var(--accent);
+      margin-bottom: .25rem;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: .9rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: .4rem;
+    }
+
+    select,
+    input[type="password"],
+    input[type="text"],
+    textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .55rem .75rem;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: .95rem;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    select:focus, input:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .key-row {
+      display: flex;
+      gap: .5rem;
+    }
+
+    .key-row input { flex: 1; }
+
+    .btn-show {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .55rem .75rem;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: .85rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .btn-show:hover { border-color: var(--accent); color: var(--text); }
+
+    .key-status {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      margin-top: .5rem;
+      font-size: .8rem;
+      color: var(--text-muted);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #aaa;
+      flex-shrink: 0;
+    }
+    .dot.ready { background: #43a047; }
+    .dot.bad   { background: var(--danger); }
+
+    .btn-generate {
+      display: block;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: .85rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background .15s, opacity .15s;
+    }
+    .btn-generate:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-generate:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* Output */
+    #output-area { display: none; }
+
+    .chip {
+      display: inline-block;
+      background: var(--bubble);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: .25rem .75rem;
+      font-size: .78rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .output-content {
+      font-family: var(--mono);
+      font-size: .95rem;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    .output-content h1,
+    .output-content h2,
+    .output-content h3 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 1.2rem 0 .4rem;
+    }
+    .output-content h1 { font-size: 1.5rem; }
+    .output-content h2 { font-size: 1.2rem; }
+    .output-content h3 { font-size: 1rem; }
+
+    .output-content p { margin-bottom: .75rem; }
+
+    .output-content ul,
+    .output-content ol {
+      padding-left: 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .output-content li { margin-bottom: .25rem; }
+
+    .output-content code {
+      background: var(--bubble);
+      border-radius: 4px;
+      padding: .1em .35em;
+      font-size: .9em;
+    }
+
+    .output-content pre {
+      background: var(--bubble);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+      overflow-x: auto;
+      margin-bottom: .75rem;
+    }
+    .output-content pre code { background: none; padding: 0; }
+
+    .output-content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1rem 0;
+    }
+
+    .output-content strong { font-weight: 700; }
+    .output-content em { font-style: italic; }
+
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: .5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      background: #ffebee;
+      border: 1px solid var(--danger);
+      border-radius: 6px;
+      padding: .85rem 1rem;
+      color: var(--danger);
+      font-size: .9rem;
+      margin-top: 1rem;
+    }
+
+    @media (max-width: 520px) {
+      .row-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Science Experiment Generator</h1>
+  <p class="subtitle">Enter a grade level and supplies — get a full experiment, instantly.</p>
+
+  <!-- Provider + Model + Key -->
+  <div class="card">
+    <div class="row-2">
+      <div>
+        <label for="provider">Provider</label>
+        <select id="provider" onchange="onProviderChange()"></select>
+      </div>
+      <div>
+        <label for="model">Model</label>
+        <select id="model"></select>
+      </div>
+    </div>
+
+    <div style="margin-top:1rem;">
+      <label for="api-key">API Key</label>
+      <div class="key-row">
+        <input type="password" id="api-key" placeholder="" oninput="onKeyInput()">
+        <button class="btn-show" onclick="toggleShow()">show</button>
+      </div>
+      <div class="key-status">
+        <span class="dot" id="key-dot"></span>
+        <span id="key-label">No key entered</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grade + Supplies -->
+  <div class="card">
+    <div class="row-2" style="margin-bottom:1rem;">
+      <div>
+        <label for="grade">Grade Level</label>
+        <select id="grade">
+          <option value="K-2">K–2</option>
+          <option value="3-5" selected>3–5</option>
+          <option value="6-8">6–8</option>
+          <option value="9-12">9–12</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <label for="supplies">Available Supplies</label>
+      <textarea id="supplies" placeholder="e.g. baking soda, vinegar, food coloring, balloons, string, tape…"></textarea>
+    </div>
+  </div>
+
+  <!-- Generate -->
+  <button class="btn-generate" id="btn-generate" onclick="generate()" disabled>
+    Generate Experiment
+  </button>
+
+  <!-- Error -->
+  <div id="error-area"></div>
+
+  <!-- Output -->
+  <div id="output-area" class="card" style="margin-top:1.25rem;">
+    <span class="chip" id="output-chip"></span>
+    <div class="output-content" id="output-content"></div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+const PROVIDERS = {
+  openai: {
+    label: 'OpenAI',
+    keyPlaceholder: 'sk-...',
+    keyPrefix: 'sk-',
+    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo']
+  },
+  anthropic: {
+    label: 'Anthropic',
+    keyPlaceholder: 'sk-ant-...',
+    keyPrefix: 'sk-ant-',
+    models: ['claude-opus-4-5', 'claude-sonnet-4-5', 'claude-haiku-4-5']
+  },
+  google: {
+    label: 'Google',
+    keyPlaceholder: 'AIza...',
+    keyPrefix: 'AIza',
+    models: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash']
+  }
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+function init() {
+  const provSel = document.getElementById('provider');
+  Object.entries(PROVIDERS).forEach(([id, p]) => {
+    const o = document.createElement('option');
+    o.value = id;
+    o.textContent = p.label;
+    provSel.appendChild(o);
+  });
+  onProviderChange();
+}
+
+function onProviderChange() {
+  const pid = document.getElementById('provider').value;
+  const p   = PROVIDERS[pid];
+
+  const modelSel = document.getElementById('model');
+  modelSel.innerHTML = '';
+  p.models.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m;
+    o.textContent = m;
+    modelSel.appendChild(o);
+  });
+
+  document.getElementById('api-key').placeholder = p.keyPlaceholder;
+  onKeyInput();
+}
+
+// ── Key UI ────────────────────────────────────────────────────────────────────
+
+function toggleShow() {
+  const el  = document.getElementById('api-key');
+  const btn = document.querySelector('.btn-show');
+  const showing = el.type === 'text';
+  el.type = showing ? 'password' : 'text';
+  btn.textContent = showing ? 'show' : 'hide';
+}
+
+function onKeyInput() {
+  const key    = document.getElementById('api-key').value.trim();
+  const pid    = document.getElementById('provider').value;
+  const prefix = PROVIDERS[pid].keyPrefix;
+  const dot    = document.getElementById('key-dot');
+  const lbl    = document.getElementById('key-label');
+  const btn    = document.getElementById('btn-generate');
+
+  if (!key) {
+    dot.className = 'dot';
+    lbl.textContent = 'No key entered';
+    btn.disabled = true;
+  } else if (key.startsWith(prefix)) {
+    dot.className = 'dot ready';
+    lbl.textContent = 'Key ready';
+    btn.disabled = false;
+  } else {
+    dot.className = 'dot bad';
+    lbl.textContent = 'Key format looks wrong';
+    btn.disabled = false; // allow attempt anyway
+  }
+}
+
+// ── Generate ──────────────────────────────────────────────────────────────────
+
+async function generate() {
+  const key      = document.getElementById('api-key').value.trim();
+  const provider = document.getElementById('provider').value;
+  const model    = document.getElementById('model').value;
+  const grade    = document.getElementById('grade').value;
+  const supplies = document.getElementById('supplies').value.trim();
+
+  if (!key)      { showError('Please enter an API key.'); return; }
+  if (!supplies) { showError('Please list some available supplies.'); return; }
+
+  clearError();
+  setLoading(true);
+
+  const prompt = `You are an enthusiastic, experienced science teacher.
+
+Generate a single, detailed science experiment appropriate for grade level ${grade} students.
+
+The student has access to these supplies: ${supplies}.
+
+Structure your response with these sections:
+## Experiment Title
+## The Big Idea
+## What You'll Need
+## Safety Notes
+## Step-by-Step Instructions
+## What to Observe
+## The Science Behind It
+## Extension Ideas`;
+
+  try {
+    const text = await callLLM(provider, model, key, prompt);
+    renderOutput(text, grade, model);
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ── API Calls ─────────────────────────────────────────────────────────────────
+
+async function callLLM(provider, model, key, prompt) {
+  if (provider === 'openai')    return callOpenAI(model, key, prompt);
+  if (provider === 'anthropic') return callAnthropic(model, key, prompt);
+  if (provider === 'google')    return callGoogle(model, key, prompt);
+  throw new Error('Unknown provider: ' + provider);
+}
+
+async function callOpenAI(model, key, prompt) {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 2048
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || `OpenAI error ${res.status}`);
+  return data.choices[0].message.content;
+}
+
+async function callAnthropic(model, key, prompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 2048,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || `Anthropic error ${res.status}`);
+  return data.content[0].text;
+}
+
+async function callGoogle(model, key, prompt) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+      })
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || `Google error ${res.status}`);
+  return data.candidates[0].content.parts[0].text;
+}
+
+// ── Markdown Renderer ─────────────────────────────────────────────────────────
+
+function renderMarkdown(md) {
+  // Fenced code blocks first (protect from inline processing)
+  const codeBlocks = [];
+  let html = md.replace(/```[\w]*\n([\s\S]*?)```/g, (_, code) => {
+    const idx = codeBlocks.length;
+    codeBlocks.push(`<pre><code>${escapeHtml(code.trimEnd())}</code></pre>`);
+    return `\x00CODE${idx}\x00`;
+  });
+
+  html = html
+    // Headings
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
+    // Horizontal rules
+    .replace(/^---+$/gm, '<hr>')
+    // Bold + italic
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    // Bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Italic
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Process lines for lists and paragraphs
+  const lines = html.split('\n');
+  const out   = [];
+  let inUl = false, inOl = false;
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+
+    // Restore code blocks
+    if (/^\x00CODE\d+\x00$/.test(line)) {
+      if (inUl) { out.push('</ul>'); inUl = false; }
+      if (inOl) { out.push('</ol>'); inOl = false; }
+      const idx = parseInt(line.replace(/\x00CODE(\d+)\x00/, '$1'));
+      out.push(codeBlocks[idx]);
+      continue;
+    }
+
+    // Unordered list item
+    if (/^[-*] (.+)/.test(line)) {
+      if (!inUl) { if (inOl) { out.push('</ol>'); inOl = false; } out.push('<ul>'); inUl = true; }
+      out.push('<li>' + line.replace(/^[-*] /, '') + '</li>');
+      continue;
+    }
+
+    // Ordered list item
+    if (/^\d+\. (.+)/.test(line)) {
+      if (!inOl) { if (inUl) { out.push('</ul>'); inUl = false; } out.push('<ol>'); inOl = true; }
+      out.push('<li>' + line.replace(/^\d+\. /, '') + '</li>');
+      continue;
+    }
+
+    // Close open lists
+    if (inUl) { out.push('</ul>'); inUl = false; }
+    if (inOl) { out.push('</ol>'); inOl = false; }
+
+    // Already block-level HTML
+    if (/^<(h[123]|hr|pre|ul|ol|li)/.test(line)) { out.push(line); continue; }
+
+    // Empty line
+    if (line === '') { out.push('<br>'); continue; }
+
+    out.push('<p>' + line + '</p>');
+  }
+
+  if (inUl) out.push('</ul>');
+  if (inOl) out.push('</ol>');
+
+  return out.join('\n');
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// ── UI Helpers ────────────────────────────────────────────────────────────────
+
+function renderOutput(text, grade, model) {
+  document.getElementById('output-chip').textContent = `Grade ${grade} · ${model}`;
+  document.getElementById('output-content').innerHTML = renderMarkdown(text);
+  const area = document.getElementById('output-area');
+  area.style.display = 'block';
+  area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function setLoading(on) {
+  const btn = document.getElementById('btn-generate');
+  btn.disabled = on;
+  btn.innerHTML = on
+    ? '<span class="spinner"></span>Generating…'
+    : 'Generate Experiment';
+}
+
+function showError(msg) {
+  document.getElementById('error-area').innerHTML =
+    `<div class="error-box">${escapeHtml(msg)}</div>`;
+}
+
+function clearError() {
+  document.getElementById('error-area').innerHTML = '';
+}
+
+init();
+</script>
+</body>
+</html>
