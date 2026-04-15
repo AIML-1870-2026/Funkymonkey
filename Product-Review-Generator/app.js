@@ -1,5 +1,5 @@
 /* ── STATE ─────────────────────────────────────────────────── */
-let anthropicKey = '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';
+let openaiKey = '';
 
 /* ── DOM REFS ──────────────────────────────────────────────── */
 
@@ -39,13 +39,12 @@ function updateKeyPill(val) {
   }
 }
 
-// Pre-fill field and pill on load
-apiKeyInput.value = anthropicKey;
-updateKeyPill(anthropicKey);
+// Init pill
+updateKeyPill('');
 
 apiKeyInput.addEventListener('input', () => {
-  anthropicKey = apiKeyInput.value.trim();
-  updateKeyPill(anthropicKey);
+  openaiKey = apiKeyInput.value.trim();
+  updateKeyPill(openaiKey);
 });
 
 toggleKeyBtn.addEventListener('click', () => {
@@ -95,7 +94,7 @@ function parseEnvFile(file) {
       const val = line.slice(eq + 1).trim().replace(/["']/g, '');
       if (key.includes('openai')) {
         apiKeyInput.value = val;
-        anthropicKey = val;
+        openaiKey = val;
         updateKeyPill(val);
       }
     });
@@ -173,7 +172,7 @@ generateBtn.addEventListener('click', generate);
 
 async function generate() {
   // Validate key
-  if (!anthropicKey || !anthropicKey.startsWith('sk-') || anthropicKey.length <= 20) {
+  if (!openaiKey || !openaiKey.startsWith('sk-') || openaiKey.length <= 20) {
     keyPill.classList.remove('flash');
     void keyPill.offsetWidth; // reflow to restart animation
     keyPill.classList.add('flash');
@@ -206,7 +205,7 @@ async function generate() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${anthropicKey}`
+        'Authorization': `Bearer ${openaiKey}`
       },
       body: JSON.stringify({
         model,

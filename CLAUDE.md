@@ -46,6 +46,16 @@ When I say "Show my URLs" or "Where's my stuff?":
 1. List all subfolders that contain an index.html
 2. For each, show the live URL pattern
 
+## The `temp/` Folder
+
+`temp/` is a working scratch space, not a published assignment. It currently holds a copy of the LLM-Switchboard project (`llm-switchboard.html`) for active development and experimentation.
+
+**How Claude Code should treat it:**
+- Files here are safe to read, edit, and iterate on freely
+- Do NOT treat `temp/` as a finished assignment or include it in "Show my URLs" listings
+- It has no nested `.git` — it lives under the root repo like any other subfolder
+- When work in `temp/` is ready to promote, move/rename it to a proper assignment folder
+
 ## Coding Standards
 - Single HTML file projects preferred (unless specified otherwise)
 - No personally identifiable information in code or comments
