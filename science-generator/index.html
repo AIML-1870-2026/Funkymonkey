@@ -59,6 +59,16 @@
       margin-bottom: 1.25rem;
     }
 
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: .85rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
     label {
       display: block;
       font-size: .8rem;
@@ -100,11 +110,12 @@
       gap: 1rem;
     }
 
+    /* Key section */
     .key-row {
       display: flex;
       gap: .5rem;
+      margin-bottom: .5rem;
     }
-
     .key-row input { flex: 1; }
 
     .btn-show {
@@ -124,9 +135,9 @@
       display: flex;
       align-items: center;
       gap: .4rem;
-      margin-top: .5rem;
       font-size: .8rem;
       color: var(--text-muted);
+      margin-bottom: .75rem;
     }
 
     .dot {
@@ -139,6 +150,53 @@
     .dot.ready { background: #43a047; }
     .dot.bad   { background: var(--danger); }
 
+    /* Drop zone */
+    .drop-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: 6px;
+      padding: .75rem 1rem;
+      text-align: center;
+      font-size: .82rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      position: relative;
+    }
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--bubble);
+      color: var(--text);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: none;
+      background: none;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin: .75rem 0;
+      font-size: .75rem;
+      color: var(--text-muted);
+    }
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Generate button */
     .btn-generate {
       display: block;
       width: 100%;
@@ -247,6 +305,43 @@
       margin-top: 1rem;
     }
 
+    /* Supply chips */
+    .supply-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+      margin-bottom: .75rem;
+    }
+
+    .supply-chip {
+      background: var(--bubble);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: .2rem .65rem;
+      font-family: var(--mono);
+      font-size: .78rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background .12s, color .12s, border-color .12s;
+      user-select: none;
+    }
+    .supply-chip:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .supply-chip.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .chips-label {
+      font-size: .75rem;
+      color: var(--text-muted);
+      margin-bottom: .4rem;
+    }
+
     @media (max-width: 520px) {
       .row-2 { grid-template-columns: 1fr; }
     }
@@ -258,35 +353,44 @@
   <h1>Science Experiment Generator</h1>
   <p class="subtitle">Enter a grade level and supplies — get a full experiment, instantly.</p>
 
-  <!-- Provider + Model + Key -->
+  <!-- API Key -->
   <div class="card">
-    <div class="row-2">
-      <div>
-        <label for="provider">Provider</label>
-        <select id="provider" onchange="onProviderChange()"></select>
-      </div>
-      <div>
-        <label for="model">Model</label>
-        <select id="model"></select>
-      </div>
+    <div class="card-title">OpenAI API Key</div>
+
+    <!-- .env drop zone -->
+    <div class="drop-zone" id="drop-zone"
+         ondragover="onDragOver(event)"
+         ondragleave="onDragLeave()"
+         ondrop="onDrop(event)">
+      Drop a <code>.env</code> file here, or click to browse
+      <input type="file" accept=".env,text/plain" onchange="onFileSelect(event)">
     </div>
 
-    <div style="margin-top:1rem;">
-      <label for="api-key">API Key</label>
-      <div class="key-row">
-        <input type="password" id="api-key" placeholder="" oninput="onKeyInput()">
-        <button class="btn-show" onclick="toggleShow()">show</button>
-      </div>
-      <div class="key-status">
-        <span class="dot" id="key-dot"></span>
-        <span id="key-label">No key entered</span>
-      </div>
+    <div class="divider">or paste key directly</div>
+
+    <div class="key-row">
+      <input type="password" id="api-key" placeholder="sk-..." oninput="onKeyInput()">
+      <button class="btn-show" onclick="toggleShow()">show</button>
+    </div>
+
+    <div class="key-status">
+      <span class="dot" id="key-dot"></span>
+      <span id="key-label">No key entered</span>
     </div>
   </div>
 
-  <!-- Grade + Supplies -->
+  <!-- Model + Grade + Supplies -->
   <div class="card">
     <div class="row-2" style="margin-bottom:1rem;">
+      <div>
+        <label for="model">Model</label>
+        <select id="model">
+          <option value="gpt-4o">gpt-4o</option>
+          <option value="gpt-4o-mini">gpt-4o-mini</option>
+          <option value="gpt-4-turbo">gpt-4-turbo</option>
+          <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+        </select>
+      </div>
       <div>
         <label for="grade">Grade Level</label>
         <select id="grade">
@@ -299,6 +403,8 @@
     </div>
     <div>
       <label for="supplies">Available Supplies</label>
+      <p class="chips-label">Click items to add them, or type your own below:</p>
+      <div class="supply-chips" id="supply-chips"></div>
       <textarea id="supplies" placeholder="e.g. baking soda, vinegar, food coloring, balloons, string, tape…"></textarea>
     </div>
   </div>
@@ -322,55 +428,43 @@
 <script>
 'use strict';
 
-const PROVIDERS = {
-  openai: {
-    label: 'OpenAI',
-    keyPlaceholder: 'sk-...',
-    keyPrefix: 'sk-',
-    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo']
-  },
-  anthropic: {
-    label: 'Anthropic',
-    keyPlaceholder: 'sk-ant-...',
-    keyPrefix: 'sk-ant-',
-    models: ['claude-opus-4-5', 'claude-sonnet-4-5', 'claude-haiku-4-5']
-  },
-  google: {
-    label: 'Google',
-    keyPlaceholder: 'AIza...',
-    keyPrefix: 'AIza',
-    models: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash']
-  }
-};
+// ── Supply Chips ──────────────────────────────────────────────────────────────
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+const COMMON_SUPPLIES = [
+  'baking soda', 'vinegar', 'water', 'salt', 'sugar', 'dish soap',
+  'food coloring', 'cornstarch', 'milk', 'lemon juice',
+  'balloons', 'string', 'tape', 'rubber bands', 'paper clips',
+  'plastic bags', 'paper towels', 'aluminum foil', 'plastic wrap',
+  'straws', 'toothpicks', 'popsicle sticks', 'cotton balls',
+  'magnifying glass', 'flashlight', 'ruler', 'scissors',
+  'magnets', 'marbles', 'coins', 'ice cubes', 'candles',
+  'soil', 'sand', 'gravel', 'seeds', 'leaves'
+];
 
-function init() {
-  const provSel = document.getElementById('provider');
-  Object.entries(PROVIDERS).forEach(([id, p]) => {
-    const o = document.createElement('option');
-    o.value = id;
-    o.textContent = p.label;
-    provSel.appendChild(o);
+function initChips() {
+  const container = document.getElementById('supply-chips');
+  COMMON_SUPPLIES.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'supply-chip';
+    btn.textContent = item;
+    btn.type = 'button';
+    btn.onclick = () => toggleChip(btn, item);
+    container.appendChild(btn);
   });
-  onProviderChange();
 }
 
-function onProviderChange() {
-  const pid = document.getElementById('provider').value;
-  const p   = PROVIDERS[pid];
+function toggleChip(btn, item) {
+  const textarea = document.getElementById('supplies');
+  const selected = btn.classList.toggle('selected');
 
-  const modelSel = document.getElementById('model');
-  modelSel.innerHTML = '';
-  p.models.forEach(m => {
-    const o = document.createElement('option');
-    o.value = m;
-    o.textContent = m;
-    modelSel.appendChild(o);
-  });
-
-  document.getElementById('api-key').placeholder = p.keyPlaceholder;
-  onKeyInput();
+  if (selected) {
+    const current = textarea.value.trim();
+    textarea.value = current ? current + ', ' + item : item;
+  } else {
+    // Remove the item from the textarea
+    const parts = textarea.value.split(',').map(s => s.trim()).filter(s => s !== item);
+    textarea.value = parts.join(', ');
+  }
 }
 
 // ── Key UI ────────────────────────────────────────────────────────────────────
@@ -384,33 +478,74 @@ function toggleShow() {
 }
 
 function onKeyInput() {
-  const key    = document.getElementById('api-key').value.trim();
-  const pid    = document.getElementById('provider').value;
-  const prefix = PROVIDERS[pid].keyPrefix;
-  const dot    = document.getElementById('key-dot');
-  const lbl    = document.getElementById('key-label');
-  const btn    = document.getElementById('btn-generate');
+  const key = document.getElementById('api-key').value.trim();
+  const dot = document.getElementById('key-dot');
+  const lbl = document.getElementById('key-label');
+  const btn = document.getElementById('btn-generate');
 
   if (!key) {
     dot.className = 'dot';
     lbl.textContent = 'No key entered';
     btn.disabled = true;
-  } else if (key.startsWith(prefix)) {
+  } else if (key.startsWith('sk-')) {
     dot.className = 'dot ready';
     lbl.textContent = 'Key ready';
     btn.disabled = false;
   } else {
     dot.className = 'dot bad';
     lbl.textContent = 'Key format looks wrong';
-    btn.disabled = false; // allow attempt anyway
+    btn.disabled = false;
   }
+}
+
+// ── .env file loading ─────────────────────────────────────────────────────────
+
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('drag-over');
+}
+
+function onDragLeave() {
+  document.getElementById('drop-zone').classList.remove('drag-over');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  onDragLeave();
+  const file = e.dataTransfer.files[0];
+  if (file) parseEnvFile(file);
+}
+
+function onFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) parseEnvFile(file);
+  e.target.value = '';
+}
+
+function parseEnvFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const lines = ev.target.result.split(/[\r\n]+/);
+    lines.forEach(raw => {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) return;
+      if (!line.includes('=')) return;
+      const eq  = line.indexOf('=');
+      const key = line.slice(0, eq).trim().toLowerCase().replace(/["']/g, '');
+      const val = line.slice(eq + 1).trim().replace(/["']/g, '');
+      if (key.includes('openai')) {
+        document.getElementById('api-key').value = val;
+        onKeyInput();
+      }
+    });
+  };
+  reader.readAsText(file);
 }
 
 // ── Generate ──────────────────────────────────────────────────────────────────
 
 async function generate() {
   const key      = document.getElementById('api-key').value.trim();
-  const provider = document.getElementById('provider').value;
   const model    = document.getElementById('model').value;
   const grade    = document.getElementById('grade').value;
   const supplies = document.getElementById('supplies').value.trim();
@@ -438,7 +573,7 @@ Structure your response with these sections:
 ## Extension Ideas`;
 
   try {
-    const text = await callLLM(provider, model, key, prompt);
+    const text = await callOpenAI(model, key, prompt);
     renderOutput(text, grade, model);
   } catch (err) {
     showError(err.message);
@@ -447,14 +582,7 @@ Structure your response with these sections:
   }
 }
 
-// ── API Calls ─────────────────────────────────────────────────────────────────
-
-async function callLLM(provider, model, key, prompt) {
-  if (provider === 'openai')    return callOpenAI(model, key, prompt);
-  if (provider === 'anthropic') return callAnthropic(model, key, prompt);
-  if (provider === 'google')    return callGoogle(model, key, prompt);
-  throw new Error('Unknown provider: ' + provider);
-}
+// ── OpenAI API ────────────────────────────────────────────────────────────────
 
 async function callOpenAI(model, key, prompt) {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -474,46 +602,10 @@ async function callOpenAI(model, key, prompt) {
   return data.choices[0].message.content;
 }
 
-async function callAnthropic(model, key, prompt) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 2048,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || `Anthropic error ${res.status}`);
-  return data.content[0].text;
-}
-
-async function callGoogle(model, key, prompt) {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
-      })
-    }
-  );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || `Google error ${res.status}`);
-  return data.candidates[0].content.parts[0].text;
-}
-
 // ── Markdown Renderer ─────────────────────────────────────────────────────────
 
 function renderMarkdown(md) {
-  // Fenced code blocks first (protect from inline processing)
+  // Extract fenced code blocks before other processing
   const codeBlocks = [];
   let html = md.replace(/```[\w]*\n([\s\S]*?)```/g, (_, code) => {
     const idx = codeBlocks.length;
@@ -522,22 +614,15 @@ function renderMarkdown(md) {
   });
 
   html = html
-    // Headings
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
     .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
-    // Horizontal rules
     .replace(/^---+$/gm, '<hr>')
-    // Bold + italic
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    // Bold
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Italic
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Inline code
     .replace(/`([^`]+)`/g, '<code>$1</code>');
 
-  // Process lines for lists and paragraphs
   const lines = html.split('\n');
   const out   = [];
   let inUl = false, inOl = false;
@@ -554,28 +639,22 @@ function renderMarkdown(md) {
       continue;
     }
 
-    // Unordered list item
     if (/^[-*] (.+)/.test(line)) {
       if (!inUl) { if (inOl) { out.push('</ol>'); inOl = false; } out.push('<ul>'); inUl = true; }
       out.push('<li>' + line.replace(/^[-*] /, '') + '</li>');
       continue;
     }
 
-    // Ordered list item
     if (/^\d+\. (.+)/.test(line)) {
       if (!inOl) { if (inUl) { out.push('</ul>'); inUl = false; } out.push('<ol>'); inOl = true; }
       out.push('<li>' + line.replace(/^\d+\. /, '') + '</li>');
       continue;
     }
 
-    // Close open lists
     if (inUl) { out.push('</ul>'); inUl = false; }
     if (inOl) { out.push('</ol>'); inOl = false; }
 
-    // Already block-level HTML
     if (/^<(h[123]|hr|pre|ul|ol|li)/.test(line)) { out.push(line); continue; }
-
-    // Empty line
     if (line === '') { out.push('<br>'); continue; }
 
     out.push('<p>' + line + '</p>');
@@ -621,7 +700,7 @@ function clearError() {
   document.getElementById('error-area').innerHTML = '';
 }
 
-init();
+initChips();
 </script>
 </body>
 </html>
