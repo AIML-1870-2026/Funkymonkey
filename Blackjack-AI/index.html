@@ -455,7 +455,7 @@
       drop .env &middot; click to upload
     </div>
     <input type="file" id="file-upload" accept=".env,.txt" onchange="onFileSelect(event)">
-    <div class="pill" id="key-pill">ANT: NO KEY</div>
+    <div class="pill" id="key-pill">OAI: NO KEY</div>
   </div>
 </header>
 
@@ -575,7 +575,7 @@ const RED_SUITS = new Set(['♥','♦']);
 const NUM_DECKS = 6;
 const RESHUFFLE_PCT  = 0.25;
 const INITIAL_BAL    = 1000;
-const MODEL          = 'claude-haiku-4-5-20251001';
+const MODEL          = 'gpt-4o-mini';
 
 // ─── State ─────────────────────────────────────────────────────────────────
 let apiKey      = null;
@@ -683,20 +683,20 @@ function parseKeyFile(file) {
       if (eq < 0) continue;
       const k = line.slice(0, eq).trim().toLowerCase().replace(/["']/g, '');
       const v = line.slice(eq + 1).trim().replace(/["']/g, '');
-      if (k.includes('anthropic') || k === 'anthropic_api_key') found = v;
+      if (k.includes('openai') || k.includes('anthropic') || k.includes('api_key')) found = v;
     }
     const pill = document.getElementById('key-pill');
     if (found) {
       apiKey = found;
-      pill.textContent = 'ANT: KEY SET';
+      pill.textContent = 'OAI: KEY SET';
       pill.className   = 'pill key-set';
       document.getElementById('btn-deal').disabled = false;
       document.getElementById('ai-reasoning').textContent = 'API key loaded. Place a bet and click Deal to start.';
-      console.log('[API] Anthropic API key loaded from .env file');
+      console.log('[API] OpenAI API key loaded from .env file');
     } else {
-      pill.textContent = 'ANT: BAD KEY';
+      pill.textContent = 'OAI: BAD KEY';
       pill.className   = 'pill bad-key';
-      console.error('[API] No ANTHROPIC_API_KEY found in uploaded file');
+      console.error('[API] No API key found in uploaded file');
     }
   };
   reader.readAsText(file);
@@ -758,27 +758,28 @@ async function callAI() {
   const maxTok = explainMode === 'in-depth' ? 512 : 200;
 
   const payload = {
-    model:      MODEL,
-    max_tokens: maxTok,
+    model:       MODEL,
+    max_tokens:  maxTok,
     temperature: 0.3,
-    system,
-    messages: [{ role: 'user', content: user }]
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user',   content: user }
+    ]
   };
 
-  console.log('[API] Sending request to Anthropic...', {
+  console.log('[API] Sending request to OpenAI...', {
     model:       MODEL,
     mode:        explainMode,
     playerTotal: handTotal(playerHand),
     dealerUp:    dealerHand.find(c => c.faceUp)?.rank
   });
 
-  const res  = await fetch('https://api.anthropic.com/v1/messages', {
+  const res  = await fetch('https://api.openai.com/v1/chat/completions', {
     method:  'POST',
     headers: {
       'Content-Type':  'application/json',
-      'x-api-key':     apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
+      'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify(payload)
   });
@@ -786,10 +787,9 @@ async function callAI() {
   const data = await res.json();
   console.log('[API] Raw response:', data);
 
-  if (!res.ok) throw new Error(data.error?.message || `Anthropic HTTP ${res.status}`);
+  if (!res.ok) throw new Error(data.error?.message || `OpenAI error ${res.status}`);
 
-  // Parse JSON — strip any accidental markdown fences
-  const raw     = data.content[0].text.trim();
+  const raw     = data.choices[0].message.content.trim();
   const jsonStr = raw.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
 
   let parsed;
